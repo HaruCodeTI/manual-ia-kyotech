@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     azure_storage_container_originals: str = "pdfs-originais"
     azure_storage_container_processed: str = "pdfs-processados"
 
+    clerk_jwks_url: str = ""
+
     chunk_size: int = 800
     chunk_overlap: int = 200
 

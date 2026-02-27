@@ -1,7 +1,16 @@
-import type { ChatResponse, UploadResponse, StatsResponse } from "@/types";
+import type { ChatResponse, UploadResponse, StatsResponse, ChatSession } from "@/types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  if (typeof window !== "undefined" && window.Clerk?.session) {
+    const token = await window.Clerk.session.getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 function handleFetchError(err: unknown): never {
   if (err instanceof DOMException && err.name === "AbortError") {
@@ -45,6 +54,8 @@ async function parseApiError(res: Response): Promise<string> {
   }
   const STATUS_MAP: Record<number, string> = {
     400: "Requisição inválida.",
+    401: "Sessão expirada. Faça login novamente.",
+    403: "Acesso negado.",
     404: "Recurso não encontrado.",
     413: "Arquivo muito grande.",
     422: "Erro ao processar documento.",
@@ -56,18 +67,21 @@ async function parseApiError(res: Response): Promise<string> {
 
 export async function askQuestion(
   question: string,
-  equipmentFilter?: string | null
+  equipmentFilter?: string | null,
+  sessionId?: string | null,
 ): Promise<ChatResponse> {
+  const auth = await authHeaders();
   let res: Response;
   try {
     res = await fetchWithTimeout(
       `${API_BASE}/api/v1/chat/ask`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auth },
         body: JSON.stringify({
           question,
           equipment_filter: equipmentFilter || null,
+          session_id: sessionId || null,
         }),
       },
       120_000
@@ -82,11 +96,12 @@ export async function askQuestion(
 export async function uploadDocument(
   formData: FormData
 ): Promise<UploadResponse> {
+  const auth = await authHeaders();
   let res: Response;
   try {
     res = await fetchWithTimeout(
       `${API_BASE}/api/v1/upload/document`,
-      { method: "POST", body: formData },
+      { method: "POST", body: formData, headers: auth },
       600_000
     );
   } catch (err) {
@@ -100,6 +115,7 @@ export async function getPdfUrl(
   storagePath: string,
   page: number
 ): Promise<string> {
+  const auth = await authHeaders();
   const params = new URLSearchParams({
     storage_path: storagePath,
     page: String(page),
@@ -108,7 +124,7 @@ export async function getPdfUrl(
   try {
     res = await fetchWithTimeout(
       `${API_BASE}/api/v1/chat/pdf-url?${params}`,
-      {},
+      { headers: auth },
       15_000
     );
   } catch (err) {
@@ -125,11 +141,12 @@ export interface Equipment {
 }
 
 export async function getEquipments(): Promise<Equipment[]> {
+  const auth = await authHeaders();
   let res: Response;
   try {
     res = await fetchWithTimeout(
       `${API_BASE}/api/v1/upload/equipments`,
-      {},
+      { headers: auth },
       15_000
     );
   } catch (err) {
@@ -140,11 +157,12 @@ export async function getEquipments(): Promise<Equipment[]> {
 }
 
 export async function getStats(): Promise<StatsResponse> {
+  const auth = await authHeaders();
   let res: Response;
   try {
     res = await fetchWithTimeout(
       `${API_BASE}/api/v1/upload/stats`,
-      {},
+      { headers: auth },
       30_000
     );
   } catch (err) {
@@ -152,4 +170,53 @@ export async function getStats(): Promise<StatsResponse> {
   }
   if (!res.ok) throw new Error(await parseApiError(res));
   return res.json();
+}
+
+// --- Sessions API ---
+
+export async function getSessions(): Promise<ChatSession[]> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/sessions`,
+      { headers: auth },
+      15_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export async function getSessionMessages(sessionId: string) {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/sessions/${sessionId}`,
+      { headers: auth },
+      15_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/sessions/${sessionId}`,
+      { method: "DELETE", headers: auth },
+      15_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
 }

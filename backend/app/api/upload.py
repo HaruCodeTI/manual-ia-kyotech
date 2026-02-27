@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import CurrentUser, get_current_user, require_role
 from app.core.database import get_db
 from app.services.ingestion import ingest_document, IngestionResult
 from app.services import repository
@@ -41,6 +42,7 @@ async def upload_document(
     doc_type: str = Form(..., description="Tipo: 'manual' ou 'informativo'"),
     published_date: date = Form(..., description="Data de publicação (YYYY-MM-DD)"),
     equipment_display_name: Optional[str] = Form(None, description="Nome de exibição do equipamento"),
+    _user: CurrentUser = Depends(require_role("Admin")),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -82,11 +84,17 @@ async def upload_document(
 
 
 @router.get("/equipments")
-async def list_equipments(db: AsyncSession = Depends(get_db)):
+async def list_equipments(
+    _user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     return await repository.list_equipments(db)
 
 
 @router.get("/stats", response_model=StatsResponse)
-async def get_stats(db: AsyncSession = Depends(get_db)):
+async def get_stats(
+    _user: CurrentUser = Depends(require_role("Admin")),
+    db: AsyncSession = Depends(get_db),
+):
     stats = await repository.get_ingestion_stats(db)
     return StatsResponse(**stats)

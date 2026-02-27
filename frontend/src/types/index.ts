@@ -15,11 +15,13 @@ export interface ChatResponse {
   query_rewritten: string;
   total_sources: number;
   model_used: string;
+  session_id: string;
 }
 
 export interface ChatRequest {
   question: string;
   equipment_filter?: string | null;
+  session_id?: string | null;
 }
 
 export interface UploadResponse {
@@ -45,4 +47,25 @@ export interface Message {
   content: string;
   citations?: Citation[];
   isLoading?: boolean;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatSessionDetail {
+  id: string;
+  title: string | null;
+  created_at: string;
+  messages: {
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+    citations: Citation[] | null;
+    metadata: Record<string, unknown> | null;
+    created_at: string;
+  }[];
 }

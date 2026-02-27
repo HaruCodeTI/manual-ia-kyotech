@@ -30,7 +30,7 @@ permitir que técnicos consultem:
 
 Construir um sistema interno com:
 
--   Autenticação corporativa (Microsoft Entra ID)
+-   Autenticação corporativa (Clerk)
 -   Upload manual assistido de PDFs
 -   Versionamento baseado em data de publicação
 -   Indexação vetorial (PostgreSQL + pgvector)
@@ -47,7 +47,7 @@ Construir um sistema interno com:
 ### Frontend
 
 -   Aplicação web (React/Next.js ou equivalente)
--   Login via Microsoft Entra ID
+-   Login via Clerk
 -   Interface de Chat + Biblioteca de Documentos
 -   Viewer interno de PDF
 

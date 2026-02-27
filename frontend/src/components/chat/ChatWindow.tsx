@@ -1,17 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { askQuestion } from "@/lib/api";
-import type { Message } from "@/types";
+import { askQuestion, getSessionMessages } from "@/lib/api";
+import { useChatContext } from "@/lib/chat-context";
+import type { Message, ChatSessionDetail } from "@/types";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 
 export function ChatWindow() {
+  const { activeSessionId, setActiveSessionId } = useChatContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20,6 +24,35 @@ export function ChatWindow() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    if (!activeSessionId) {
+      setMessages([]);
+      sessionIdRef.current = null;
+      return;
+    }
+
+    if (activeSessionId === sessionIdRef.current) return;
+
+    setLoadingSession(true);
+    getSessionMessages(activeSessionId)
+      .then((data: ChatSessionDetail) => {
+        sessionIdRef.current = activeSessionId;
+        setMessages(
+          data.messages.map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            citations: m.citations ?? undefined,
+          }))
+        );
+      })
+      .catch(() => {
+        setMessages([]);
+        setActiveSessionId(null);
+      })
+      .finally(() => setLoadingSession(false));
+  }, [activeSessionId, setActiveSessionId]);
 
   async function handleSend(question: string, equipmentFilter?: string | null) {
     const userMsg: Message = {
@@ -39,7 +72,16 @@ export function ChatWindow() {
     setIsLoading(true);
 
     try {
-      const data = await askQuestion(question, equipmentFilter);
+      const data = await askQuestion(
+        question,
+        equipmentFilter,
+        sessionIdRef.current,
+      );
+
+      if (!sessionIdRef.current && data.session_id) {
+        sessionIdRef.current = data.session_id;
+        setActiveSessionId(data.session_id);
+      }
 
       const assistantMsg: Message = {
         id: loadingMsg.id,
@@ -63,6 +105,14 @@ export function ChatWindow() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (loadingSession) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (

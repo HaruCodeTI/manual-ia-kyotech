@@ -3,6 +3,7 @@
 import { MessageSquare, Menu, Sun, Moon, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "./ThemeProvider";
+import { UserMenu } from "./UserMenu";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -37,14 +38,17 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           </span>
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={cycleTheme}
-        title={`Tema: ${THEME_LABEL[theme]}`}
-      >
-        <ThemeIcon className="h-4 w-4" />
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={cycleTheme}
+          title={`Tema: ${THEME_LABEL[theme]}`}
+        >
+          <ThemeIcon className="h-4 w-4" />
+        </Button>
+        <UserMenu />
+      </div>
     </header>
   );
 }

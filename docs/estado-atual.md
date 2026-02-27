@@ -131,7 +131,7 @@ Sistema RAG (Retrieval-Augmented Generation) interno e privado para a Kyotech, p
 | TLS 1.2 mínimo em todos os serviços | ✅ |
 | Azure Firewall | ⏳ Fase 2 (subnet reservada) |
 | NSG com regras customizadas | ⏳ Fase 1 |
-| Microsoft Entra ID (autenticação app) | ⏳ Fase 1 |
+| Clerk (autenticação app) | ✅ |
 
 ### 2.4 Custos Atuais
 
@@ -365,7 +365,7 @@ $$ LANGUAGE plpgsql;
 | Geração de resposta | GPT-4o com citações (documento + página) | ⬜ |
 | Frontend chat | Interface básica de chat em React/Next.js | ⬜ |
 | Viewer de PDF | Abertura na página citada via URL assinada (#page=) | ⬜ |
-| Autenticação | Microsoft Entra ID (login corporativo) | ⬜ |
+| Autenticação | Clerk (login corporativo) | ✅ |
 
 ### Fase 2 — Robustez Operacional (Semanas 5–8)
 

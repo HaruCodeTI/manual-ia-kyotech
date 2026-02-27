@@ -167,7 +167,7 @@ O backend já aceita requests de `http://localhost:3000` e `http://localhost:517
 ### Navegação
 - Sidebar ou tabs simples: Chat | Upload | Stats
 - Header com logo/nome "Kyotech AI"
-- Não precisa de autenticação no MVP (Entra ID vem na Fase 2)
+- Autenticação via Clerk (roles Admin/Technician via publicMetadata)
 
 ---
 
