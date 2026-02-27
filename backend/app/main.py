@@ -33,6 +33,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
         "http://127.0.0.1:5173",
+        "https://kyotech-frontend.redmeadow-72ffb9e6.canadacentral.azurecontainerapps.io"
     ],
     allow_credentials=True,
     allow_methods=["*"],
