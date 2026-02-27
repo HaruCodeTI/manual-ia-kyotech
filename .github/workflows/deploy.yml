@@ -1,0 +1,103 @@
+name: Deploy Kyotech AI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # permite rodar manualmente pelo GitHub
+
+# Apenas um deploy por vez
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  ACR_NAME: acrkyotech
+  ACR_LOGIN_SERVER: acrkyotech.azurecr.io
+  RESOURCE_GROUP: rg-kyotech-ai
+  BACKEND_APP: kyotech-backend
+  FRONTEND_APP: kyotech-frontend
+
+jobs:
+  # ─── Detectar o que mudou ───
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+  # ─── Build e Deploy do Backend ───
+  deploy-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login no ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build e Push da imagem
+        run: |
+          cd backend
+          IMAGE=${{ env.ACR_LOGIN_SERVER }}/kyotech-backend:${{ github.sha }}
+          IMAGE_LATEST=${{ env.ACR_LOGIN_SERVER }}/kyotech-backend:latest
+          docker build --platform linux/amd64 -t $IMAGE -t $IMAGE_LATEST .
+          docker push $IMAGE
+          docker push $IMAGE_LATEST
+
+      - name: Deploy no Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_LOGIN_SERVER }}/kyotech-backend:${{ github.sha }}
+
+  # ─── Build e Deploy do Frontend ───
+  deploy-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login no ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build e Push da imagem
+        run: |
+          cd frontend
+          IMAGE=${{ env.ACR_LOGIN_SERVER }}/kyotech-frontend:${{ github.sha }}
+          IMAGE_LATEST=${{ env.ACR_LOGIN_SERVER }}/kyotech-frontend:latest
+          docker build --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
+            -t $IMAGE -t $IMAGE_LATEST .
+          docker push $IMAGE
+          docker push $IMAGE_LATEST
+
+      - name: Deploy no Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.FRONTEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_LOGIN_SERVER }}/kyotech-frontend:${{ github.sha }}
