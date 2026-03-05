@@ -135,6 +135,37 @@ export async function getPdfUrl(
   return data.url;
 }
 
+// --- Viewer API ---
+
+export interface ViewerInfo {
+  version_id: string;
+  source_filename: string;
+  equipment_key: string;
+  doc_type: string;
+  published_date: string;
+  total_pages: number;
+}
+
+export async function getViewerInfo(versionId: string): Promise<ViewerInfo> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/viewer/info/${versionId}`,
+      { headers: auth },
+      30_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export function getPageImageUrl(versionId: string, pageNumber: number): string {
+  return `${API_BASE}/api/v1/viewer/page/${versionId}/${pageNumber}`;
+}
+
 export interface Equipment {
   key: string;
   name: string;

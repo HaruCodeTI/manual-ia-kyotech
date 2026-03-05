@@ -57,6 +57,7 @@ class Citation:
     doc_type: str
     published_date: str
     storage_path: str
+    document_version_id: str = ""
 
 
 @dataclass
@@ -123,6 +124,7 @@ async def generate_response(
             doc_type=r.doc_type,
             published_date=str(r.published_date),
             storage_path=r.storage_path,
+            document_version_id=r.document_version_id,
         ))
 
     logger.info(

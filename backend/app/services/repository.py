@@ -162,6 +162,39 @@ async def insert_chunks_with_embeddings(
     return len(chunks)
 
 
+async def get_version_info(
+    db: AsyncSession,
+    version_id: UUID,
+) -> Optional[Dict]:
+    """Busca storage_path e total_pages de uma versão pelo ID."""
+    result = await db.execute(
+        text("""
+            SELECT
+                dv.storage_path,
+                dv.source_filename,
+                dv.published_date,
+                d.equipment_key,
+                d.doc_type,
+                (SELECT COUNT(*) FROM chunks WHERE document_version_id = dv.id) AS total_chunks
+            FROM document_versions dv
+            JOIN documents d ON dv.document_id = d.id
+            WHERE dv.id = :version_id
+        """),
+        {"version_id": str(version_id)},
+    )
+    row = result.fetchone()
+    if not row:
+        return None
+    return {
+        "storage_path": row[0],
+        "source_filename": row[1],
+        "published_date": row[2],
+        "equipment_key": row[3],
+        "doc_type": row[4],
+        "total_chunks": row[5],
+    }
+
+
 async def list_equipments(db: AsyncSession) -> List[Dict[str, str]]:
     result = await db.execute(
         text("SELECT equipment_key, display_name FROM equipments ORDER BY display_name")

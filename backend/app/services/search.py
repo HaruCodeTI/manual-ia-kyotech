@@ -36,6 +36,7 @@ class SearchResult:
     source_filename: str
     storage_path: str
     search_type: str  # "vector", "text", or "hybrid"
+    document_version_id: str = ""  # ID da versão para o viewer seguro
 
 
 async def vector_search(
@@ -46,31 +47,50 @@ async def vector_search(
     equipment_key: Optional[str] = None,
 ) -> List[SearchResult]:
     """
-    Busca vetorial usando a função search_current_chunks do banco.
+    Busca vetorial com cosine similarity via pgvector.
     Busca apenas nas versões atuais (mais recentes).
+    Retorna document_version_id para o viewer seguro.
     """
     embedding = await generate_single_embedding(query_text)
     embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
 
+    filters = []
+    params: Dict = {"embedding": embedding_str, "limit": limit}
+
+    if doc_type:
+        filters.append("d.doc_type = :doc_type")
+        params["doc_type"] = doc_type
+    if equipment_key:
+        filters.append("d.equipment_key = :equipment")
+        params["equipment"] = equipment_key
+
+    where_clause = ""
+    if filters:
+        where_clause = "AND " + " AND ".join(filters)
+
     result = await db.execute(
-        text("""
+        text(f"""
             SELECT
-                chunk_id, content, page_number, similarity,
-                document_id, doc_type, equipment_key,
-                published_date, source_filename, storage_path
-            FROM search_current_chunks(
-                cast(:embedding AS vector),
-                :limit,
-                :doc_type,
-                :equipment
-            )
+                c.id AS chunk_id,
+                c.content,
+                c.page_number,
+                1 - (c.embedding <=> cast(:embedding AS vector)) AS similarity,
+                d.id AS document_id,
+                d.doc_type,
+                d.equipment_key,
+                cv.published_date,
+                cv.source_filename,
+                cv.storage_path,
+                cv.id AS version_id
+            FROM chunks c
+            JOIN current_versions cv ON c.document_version_id = cv.id
+            JOIN documents d ON cv.document_id = d.id
+            WHERE 1=1
+            {where_clause}
+            ORDER BY c.embedding <=> cast(:embedding AS vector)
+            LIMIT :limit
         """),
-        {
-            "embedding": embedding_str,
-            "limit": limit,
-            "doc_type": doc_type,
-            "equipment": equipment_key,
-        },
+        params,
     )
 
     rows = result.fetchall()
@@ -86,6 +106,7 @@ async def vector_search(
             published_date=row[7],
             source_filename=row[8],
             storage_path=row[9],
+            document_version_id=str(row[10]),
             search_type="vector",
         )
         for row in rows
@@ -130,7 +151,8 @@ async def text_search(
                 d.equipment_key,
                 cv.published_date,
                 cv.source_filename,
-                cv.storage_path
+                cv.storage_path,
+                cv.id AS version_id
             FROM chunks c
             JOIN current_versions cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
@@ -155,6 +177,7 @@ async def text_search(
             published_date=row[7],
             source_filename=row[8],
             storage_path=row[9],
+            document_version_id=str(row[10]),
             search_type="text",
         )
         for row in rows

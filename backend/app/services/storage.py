@@ -68,6 +68,30 @@ async def upload_pdf(
     )
 
 
+def _download_blob_sync(container: str, blob_name: str) -> bytes:
+    """Baixa o conteúdo de um blob como bytes (execução síncrona)."""
+    client = get_blob_client()
+    blob_client = client.get_blob_client(container=container, blob=blob_name)
+    downloader = blob_client.download_blob(timeout=120)
+    return downloader.readall()
+
+
+async def download_blob(storage_path: str) -> bytes:
+    """
+    Baixa um PDF do Azure Blob Storage pelo storage_path (container/blob).
+    Retorna os bytes do arquivo.
+    """
+    parts = storage_path.split("/", 1)
+    container_name = parts[0]
+    blob_name = parts[1] if len(parts) > 1 else ""
+
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        None,
+        partial(_download_blob_sync, container_name, blob_name),
+    )
+
+
 def generate_signed_url(storage_path: str, expiry_hours: int = 1) -> str:
     parts = storage_path.split("/", 1)
     container_name = parts[0]

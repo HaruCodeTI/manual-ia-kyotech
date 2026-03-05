@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { Citation } from "@/types";
-import { getPdfUrl } from "@/lib/api";
+import { useViewer } from "@/lib/viewer-context";
 import { Badge } from "@/components/ui/badge";
-import { FileText, ExternalLink, Loader2 } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
 
 interface CitationBadgeProps {
   citation: Citation;
@@ -12,8 +12,8 @@ interface CitationBadgeProps {
 
 export function CitationBadge({ citation }: CitationBadgeProps) {
   const [showDetail, setShowDetail] = useState(false);
-  const [loadingPdf, setLoadingPdf] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const { openViewer } = useViewer();
 
   useEffect(() => {
     if (!showDetail) return;
@@ -26,17 +26,21 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showDetail]);
 
-  async function handleOpenPdf(e: React.MouseEvent) {
+  function handleOpenViewer(e: React.MouseEvent) {
     e.stopPropagation();
-    setLoadingPdf(true);
-    try {
-      const url = await getPdfUrl(citation.storage_path, citation.page_number);
-      window.open(url, "_blank");
-    } catch {
-      alert("Não foi possível gerar o link do PDF.");
-    } finally {
-      setLoadingPdf(false);
-    }
+    setShowDetail(false);
+
+    // Usar document_version_id se disponível, senão fallback para storage_path
+    const versionId = citation.document_version_id || citation.storage_path;
+
+    openViewer({
+      versionId,
+      pageNumber: citation.page_number,
+      sourceFilename: citation.source_filename,
+      equipmentKey: citation.equipment_key,
+      docType: citation.doc_type,
+      publishedDate: citation.published_date,
+    });
   }
 
   return (
@@ -63,16 +67,11 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
               {new Date(citation.published_date).toLocaleDateString("pt-BR")}
             </p>
             <button
-              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
-              onClick={handleOpenPdf}
-              disabled={loadingPdf}
+              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              onClick={handleOpenViewer}
             >
-              {loadingPdf ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <ExternalLink className="h-3 w-3" />
-              )}
-              Ver PDF na página {citation.page_number}
+              <Eye className="h-3 w-3" />
+              Ver página {citation.page_number}
             </button>
           </div>
         </div>

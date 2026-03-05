@@ -124,3 +124,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Proteção de documentos — bloqueia impressão do viewer */
+@media print {
+  .viewer-protected,
+  .viewer-protected * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  body::after {
+    content: "Impressão não permitida — Documentos confidenciais Kyotech/Fujifilm";
+    display: block;
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+    color: #666;
+  }
+}

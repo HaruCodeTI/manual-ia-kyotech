@@ -6,6 +6,7 @@ export interface Citation {
   doc_type: "manual" | "informativo";
   published_date: string;
   storage_path: string;
+  document_version_id?: string;  // Adicionado para o viewer seguro
 }
 
 export interface ChatResponse {

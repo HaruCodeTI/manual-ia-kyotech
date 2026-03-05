@@ -47,6 +47,7 @@ class CitationResponse(BaseModel):
     doc_type: str
     published_date: str
     storage_path: str
+    document_version_id: str = ""
 
 
 class ChatResponse(BaseModel):
@@ -112,6 +113,7 @@ async def ask_question(
             doc_type=c.doc_type,
             published_date=c.published_date,
             storage_path=c.storage_path,
+            document_version_id=c.document_version_id,
         )
         for c in rag_response.citations
     ]
