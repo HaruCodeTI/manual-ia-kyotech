@@ -45,7 +45,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }
 
   return (
-    <div className="space-y-2 border-t bg-background p-4">
+    <div className="space-y-2 border-t bg-background/80 p-4 backdrop-blur-sm">
       {equipments.length > 0 && (
         <div className="flex items-center gap-2">
           <Filter className="h-3.5 w-3.5 text-muted-foreground" />
@@ -73,12 +73,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onKeyDown={handleKeyDown}
           disabled={disabled}
           rows={1}
-          className="max-h-32 min-h-[2.5rem] resize-none"
+          className="max-h-32 min-h-[2.5rem] resize-none rounded-xl border-border/50 bg-card shadow-sm focus-visible:ring-primary/30"
         />
         <Button
           size="icon"
           onClick={handleSubmit}
           disabled={disabled || !value.trim()}
+          className="shrink-0 rounded-xl shadow-sm"
         >
           <SendHorizontal className="h-4 w-4" />
         </Button>

@@ -72,27 +72,31 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   return (
     <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
+      {/* Avatar */}
       <div
         className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm",
+          isUser
+            ? "bg-primary text-primary-foreground"
+            : "border bg-card text-muted-foreground"
         )}
       >
         {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
       </div>
 
+      {/* Bubble */}
       <div
         className={cn(
-          "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+          "rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
           isUser
             ? "max-w-[75%] bg-primary text-primary-foreground"
-            : "max-w-full bg-muted sm:max-w-[85%]"
+            : "max-w-full border bg-card sm:max-w-[85%]"
         )}
       >
         {message.isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Buscando nos manuais…
+            <span className="text-sm">Buscando nos manuais…</span>
           </div>
         ) : isUser ? (
           <p>{message.content}</p>
@@ -109,12 +113,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
+        {/* Citations footer */}
         {!message.isLoading &&
           message.citations &&
           message.citations.length > 0 && (
-            <div className="mt-3 border-t pt-2">
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                Fontes referenciadas:
+            <div className="mt-3 border-t border-border/50 pt-2.5">
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Fontes
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {message.citations.map((c) => (

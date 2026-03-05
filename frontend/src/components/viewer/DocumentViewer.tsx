@@ -146,7 +146,7 @@ export function DocumentViewer() {
   if (!isOpen || !viewer) return null;
 
   return (
-    <div className="viewer-protected flex h-full w-full flex-col border-l bg-background">
+    <div className="viewer-protected flex h-full w-full flex-col border-l bg-card">
       {/* Header */}
       <div className="flex items-center justify-between border-b px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">

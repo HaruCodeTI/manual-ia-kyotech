@@ -47,73 +47,100 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* ============================================================
+   Kyotech AI — Paleta "Neutro Sofisticado"
+   Brand: Dark Red #8B1A1A / Dark Grey #4A4A4A / White
+   ============================================================ */
+
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.985 0.002 240);
-  --foreground: oklch(0.145 0.015 250);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0.015 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0.015 250);
-  --primary: oklch(0.45 0.18 255);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.02 245);
-  --secondary-foreground: oklch(0.25 0.06 250);
-  --muted: oklch(0.95 0.01 245);
-  --muted-foreground: oklch(0.5 0.02 250);
-  --accent: oklch(0.93 0.03 245);
-  --accent-foreground: oklch(0.25 0.06 250);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.015 245);
-  --input: oklch(0.9 0.015 245);
-  --ring: oklch(0.55 0.15 255);
-  --chart-1: oklch(0.45 0.18 255);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.97 0.01 245);
-  --sidebar-foreground: oklch(0.145 0.015 250);
-  --sidebar-primary: oklch(0.45 0.18 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.93 0.03 245);
-  --sidebar-accent-foreground: oklch(0.25 0.06 250);
-  --sidebar-border: oklch(0.9 0.015 245);
-  --sidebar-ring: oklch(0.55 0.15 255);
+  /* Fundo */
+  --background: #f8f8f8;
+  --foreground: #1a1a1a;
+  /* Cards */
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  /* Popovers */
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  /* Primary: vermelho escuro da marca */
+  --primary: #8B1A1A;
+  --primary-foreground: #ffffff;
+  /* Secondary */
+  --secondary: #f0f0f0;
+  --secondary-foreground: #3a3a3a;
+  /* Muted */
+  --muted: #f2f2f2;
+  --muted-foreground: #6b6b6b;
+  /* Accent */
+  --accent: #ededed;
+  --accent-foreground: #2a2a2a;
+  /* Destructive */
+  --destructive: #dc2626;
+  /* Borders */
+  --border: #e2e2e2;
+  --input: #e2e2e2;
+  --ring: #8B1A1A;
+  /* Charts */
+  --chart-1: #8B1A1A;
+  --chart-2: #4A4A4A;
+  --chart-3: #6b7280;
+  --chart-4: #d97706;
+  --chart-5: #059669;
+  /* Sidebar: escura para contraste */
+  --sidebar: #1e1e1e;
+  --sidebar-foreground: #e8e8e8;
+  --sidebar-primary: #c0392b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #f0f0f0;
+  --sidebar-border: #333333;
+  --sidebar-ring: #c0392b;
 }
 
 .dark {
-  --background: oklch(0.14 0.015 250);
-  --foreground: oklch(0.95 0.01 240);
-  --card: oklch(0.19 0.02 250);
-  --card-foreground: oklch(0.95 0.01 240);
-  --popover: oklch(0.19 0.02 250);
-  --popover-foreground: oklch(0.95 0.01 240);
-  --primary: oklch(0.6 0.18 255);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.25 0.03 250);
-  --secondary-foreground: oklch(0.92 0.01 240);
-  --muted: oklch(0.25 0.02 250);
-  --muted-foreground: oklch(0.65 0.02 245);
-  --accent: oklch(0.25 0.03 250);
-  --accent-foreground: oklch(0.92 0.01 240);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.6 0.15 255);
-  --chart-1: oklch(0.6 0.18 255);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.17 0.02 250);
-  --sidebar-foreground: oklch(0.95 0.01 240);
-  --sidebar-primary: oklch(0.6 0.18 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.25 0.03 250);
-  --sidebar-accent-foreground: oklch(0.92 0.01 240);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.6 0.15 255);
+  /* Fundo escuro */
+  --background: #0e0e0e;
+  --foreground: #e8e8e8;
+  /* Cards */
+  --card: #171717;
+  --card-foreground: #e8e8e8;
+  /* Popovers */
+  --popover: #171717;
+  --popover-foreground: #e8e8e8;
+  /* Primary */
+  --primary: #c0392b;
+  --primary-foreground: #ffffff;
+  /* Secondary */
+  --secondary: #1f1f1f;
+  --secondary-foreground: #d4d4d4;
+  /* Muted */
+  --muted: #1f1f1f;
+  --muted-foreground: #999999;
+  /* Accent */
+  --accent: #252525;
+  --accent-foreground: #e0e0e0;
+  /* Destructive */
+  --destructive: #ef4444;
+  /* Borders */
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #c0392b;
+  /* Charts */
+  --chart-1: #c0392b;
+  --chart-2: #3b82f6;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #ef4444;
+  /* Sidebar: mais escura */
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #e8e8e8;
+  --sidebar-primary: #c0392b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #e0e0e0;
+  --sidebar-border: #222222;
+  --sidebar-ring: #c0392b;
 }
 
 @layer base {

@@ -46,8 +46,8 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
   return (
     <span ref={ref} className="relative inline-block">
       <Badge
-        variant="secondary"
-        className="cursor-pointer gap-1 font-mono text-xs hover:bg-primary hover:text-primary-foreground"
+        variant="outline"
+        className="cursor-pointer gap-1 font-mono text-[11px] transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
         onClick={() => setShowDetail((v) => !v)}
       >
         <FileText className="h-3 w-3" />
@@ -55,19 +55,19 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
       </Badge>
 
       {showDetail && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-lg border bg-popover p-3 text-sm shadow-lg">
-          <div className="space-y-1.5">
-            <p className="font-medium">{citation.source_filename}</p>
-            <p className="text-muted-foreground">
+        <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border bg-popover p-3.5 text-sm shadow-lg">
+          <div className="space-y-2">
+            <p className="font-medium text-foreground">{citation.source_filename}</p>
+            <p className="text-xs text-muted-foreground">
               Página {citation.page_number} · {citation.equipment_key} ·{" "}
               {citation.doc_type}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground/70">
               Publicado em{" "}
               {new Date(citation.published_date).toLocaleDateString("pt-BR")}
             </p>
             <button
-              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
               onClick={handleOpenViewer}
             >
               <Eye className="h-3 w-3" />

@@ -42,7 +42,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <Header onToggleSidebar={handleToggle} />
         <div className="flex flex-1 overflow-hidden">
           <main
-            className={`overflow-hidden transition-all duration-200 ${
+            className={`overflow-hidden transition-all duration-300 ${
               viewerOpen && isDesktop ? "w-1/2" : "flex-1"
             }`}
           >
@@ -50,7 +50,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           </main>
           {viewerOpen && (
             <aside
-              className={`overflow-hidden transition-all duration-200 ${
+              className={`overflow-hidden transition-all duration-300 ${
                 isDesktop
                   ? "w-1/2"
                   : "fixed inset-0 z-50 w-full bg-background"

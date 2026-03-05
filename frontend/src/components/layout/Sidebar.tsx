@@ -83,30 +83,44 @@ export function Sidebar({
     <>
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-background transition-all md:static",
+          "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 md:static",
           open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          collapsed ? "md:w-16" : "w-56"
+          collapsed ? "md:w-16" : "w-60"
         )}
       >
+        {/* Logo */}
         <div
           className={cn(
-            "flex h-14 shrink-0 items-center gap-2 border-b px-4",
+            "flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border px-4",
             collapsed && "md:justify-center md:px-0"
           )}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-            <MessageSquare className="h-4 w-4 text-primary-foreground" />
-          </div>
-          {!collapsed && <span className="font-semibold">Kyotech AI</span>}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/kyotech-icon.png"
+            alt="Kyotech"
+            className="h-9 w-9 shrink-0 rounded-lg object-contain"
+          />
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight">
+                Kyotech AI
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
+                Endoscopia
+              </span>
+            </div>
+          )}
         </div>
 
-        <nav className={cn("space-y-1 p-3", collapsed && "md:px-2")}>
+        {/* Navigation */}
+        <nav className={cn("space-y-0.5 p-3", collapsed && "md:px-2")}>
           {filteredNav.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             const linkContent = (
@@ -115,14 +129,14 @@ export function Sidebar({
                 href={href}
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
                   collapsed && "md:justify-center md:px-0",
                   active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-sidebar-primary")} />
                 {!collapsed && label}
               </Link>
             );
@@ -141,16 +155,17 @@ export function Sidebar({
           })}
         </nav>
 
+        {/* Sessions */}
         {!collapsed && pathname === "/" && (
-          <div className="flex flex-1 flex-col overflow-hidden border-t">
-            <div className="flex items-center justify-between px-4 py-2">
-              <span className="text-xs font-medium text-muted-foreground">
+          <div className="flex flex-1 flex-col overflow-hidden border-t border-sidebar-border">
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
                 Conversas
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                 onClick={() => onSelectSession?.(null)}
                 title="Nova conversa"
               >
@@ -160,10 +175,10 @@ export function Sidebar({
             <div className="flex-1 overflow-y-auto px-2 pb-2">
               {loadingSessions ? (
                 <div className="flex justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-4 w-4 animate-spin text-sidebar-foreground/30" />
                 </div>
               ) : sessions.length === 0 ? (
-                <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                <p className="px-2 py-4 text-center text-xs text-sidebar-foreground/30">
                   Nenhuma conversa ainda
                 </p>
               ) : (
@@ -175,21 +190,21 @@ export function Sidebar({
                       onClose();
                     }}
                     className={cn(
-                      "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                      "group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-all duration-150",
                       activeSessionId === s.id
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                     )}
                   >
                     <span className="flex-1 truncate">
                       {s.title || "Nova conversa"}
                     </span>
-                    <span className="shrink-0 text-[10px] opacity-60">
+                    <span className="shrink-0 text-[10px] opacity-50">
                       {timeAgo(s.updated_at)}
                     </span>
                     <button
                       onClick={(e) => handleDelete(e, s.id)}
-                      className="hidden shrink-0 rounded p-0.5 hover:bg-destructive/10 hover:text-destructive group-hover:block"
+                      className="hidden shrink-0 rounded p-0.5 hover:bg-red-500/20 hover:text-red-400 group-hover:block"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
