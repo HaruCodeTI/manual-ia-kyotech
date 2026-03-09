@@ -55,6 +55,8 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run tests
+        env:
+          DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
         run: |
           cd backend
           python -m pytest --cov=app --cov-report=term-missing -v
