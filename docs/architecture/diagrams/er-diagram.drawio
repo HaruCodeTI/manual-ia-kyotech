@@ -1,0 +1,133 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.1 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36" version="29.6.1">
+  <diagram id="er-diagram-full" name="ER Diagram">
+    <mxGraphModel dx="3273" dy="1260" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title-box" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" value="Modelo Entidade-Relacionamento — Kyotech AI" vertex="1">
+          <mxGeometry height="50" width="800" x="300" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="equipments-table" parent="1" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;align=center;fontColor=#000000;" value="equipments" vertex="1">
+          <mxGeometry height="160" width="320" x="80" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="eq-pk" parent="equipments-table" style="text;strokeColor=#FFD700;fillColor=#fff2cc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="PK  equipment_key : text" vertex="1">
+          <mxGeometry height="30" width="320" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="eq-col1" parent="equipments-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="display_name : text" vertex="1">
+          <mxGeometry height="30" width="320" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eq-col2" parent="equipments-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="aliases : text[]" vertex="1">
+          <mxGeometry height="30" width="320" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="eq-col3" parent="equipments-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="created_at : timestamptz" vertex="1">
+          <mxGeometry height="30" width="320" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="documents-table" parent="1" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;align=center;fontColor=#000000;" value="documents" vertex="1">
+          <mxGeometry height="160" width="320" x="80" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="doc-pk" parent="documents-table" style="text;strokeColor=#FFD700;fillColor=#fff2cc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="PK  id : uuid" vertex="1">
+          <mxGeometry height="30" width="320" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="doc-col1" parent="documents-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="doc_type : text  (manual | informativo)" vertex="1">
+          <mxGeometry height="30" width="320" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="doc-fk" parent="documents-table" style="text;strokeColor=#FFB3B3;fillColor=#f8cecc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="FK  equipment_key : text" vertex="1">
+          <mxGeometry height="30" width="320" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="doc-col2" parent="documents-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="created_at : timestamptz" vertex="1">
+          <mxGeometry height="30" width="320" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="docversions-table" parent="1" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;align=center;fontColor=#000000;" value="document_versions" vertex="1">
+          <mxGeometry height="280" width="320" x="80" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-pk" parent="docversions-table" style="text;strokeColor=#FFD700;fillColor=#fff2cc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="PK  id : uuid" vertex="1">
+          <mxGeometry height="30" width="320" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-fk" parent="docversions-table" style="text;strokeColor=#FFB3B3;fillColor=#f8cecc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="FK  document_id : uuid" vertex="1">
+          <mxGeometry height="30" width="320" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-col1" parent="docversions-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="published_date : date" vertex="1">
+          <mxGeometry height="30" width="320" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-col2" parent="docversions-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="source_hash : text  (SHA-256)" vertex="1">
+          <mxGeometry height="30" width="320" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-col3" parent="docversions-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="source_filename : text" vertex="1">
+          <mxGeometry height="30" width="320" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-col4" parent="docversions-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="storage_path : text" vertex="1">
+          <mxGeometry height="30" width="320" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-col5" parent="docversions-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="total_pages : integer" vertex="1">
+          <mxGeometry height="30" width="320" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="dv-col6" parent="docversions-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=10;fontColor=#000000;" value="total_chunks : integer  |  ingested_at : timestamptz" vertex="1">
+          <mxGeometry height="30" width="320" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="chunks-table" parent="1" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;align=center;fontColor=#000000;" value="chunks" vertex="1">
+          <mxGeometry height="220" width="320" x="80" y="960" as="geometry" />
+        </mxCell>
+        <mxCell id="ch-pk" parent="chunks-table" style="text;strokeColor=#FFD700;fillColor=#fff2cc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="PK  id : uuid" vertex="1">
+          <mxGeometry height="30" width="320" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ch-fk" parent="chunks-table" style="text;strokeColor=#FFB3B3;fillColor=#f8cecc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="FK  document_version_id : uuid" vertex="1">
+          <mxGeometry height="30" width="320" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch-col1" parent="chunks-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="page_number : integer" vertex="1">
+          <mxGeometry height="30" width="320" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ch-col2" parent="chunks-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="content : text" vertex="1">
+          <mxGeometry height="30" width="320" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ch-col3" parent="chunks-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="embedding : vector(1536)" vertex="1">
+          <mxGeometry height="30" width="320" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="ch-col4" parent="chunks-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=10;fontColor=#000000;" value="chunk_index : integer  |  created_at : timestamptz" vertex="1">
+          <mxGeometry height="30" width="320" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="auditlogs-table" parent="1" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;align=center;fontColor=#000000;" value="audit_logs" vertex="1">
+          <mxGeometry height="220" width="320" x="900" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="al-pk" parent="auditlogs-table" style="text;strokeColor=#FFD700;fillColor=#fff2cc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="PK  id : uuid" vertex="1">
+          <mxGeometry height="30" width="320" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="al-col1" parent="auditlogs-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=10;fontColor=#000000;" value="event_type : text  (chat_query | document_upload | pdf_view)" vertex="1">
+          <mxGeometry height="30" width="320" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="al-col2" parent="auditlogs-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="user_id : text" vertex="1">
+          <mxGeometry height="30" width="320" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="al-col3" parent="auditlogs-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="user_role : text  (tecnico | gerente)" vertex="1">
+          <mxGeometry height="30" width="320" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="al-col4" parent="auditlogs-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="metadata : jsonb" vertex="1">
+          <mxGeometry height="30" width="320" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="al-col5" parent="auditlogs-table" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="created_at : timestamptz" vertex="1">
+          <mxGeometry height="30" width="320" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-eq-doc" edge="1" parent="1" source="equipments-table" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;fontStyle=1;endArrow=ERmany;startArrow=ERone;html=1;fontColor=#000000;" target="documents-table" value="possui (1:N)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-doc-dv" edge="1" parent="1" source="documents-table" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;fontStyle=1;endArrow=ERmany;startArrow=ERone;html=1;fontColor=#000000;" target="docversions-table" value="possui versoes (1:N)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-dv-ch" edge="1" parent="1" source="docversions-table" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;fontStyle=1;endArrow=ERmany;startArrow=ERone;html=1;fontColor=#000000;" target="chunks-table" value="contem (1:N)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=#000000;" value="Legenda" vertex="1">
+          <mxGeometry height="30" width="100" x="900" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-pk" parent="1" style="text;strokeColor=#FFD700;fillColor=#fff2cc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="PK — Chave Primaria" vertex="1">
+          <mxGeometry height="30" width="200" x="900" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-fk" parent="1" style="text;strokeColor=#FFB3B3;fillColor=#f8cecc;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="FK — Chave Estrangeira" vertex="1">
+          <mxGeometry height="30" width="200" x="900" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-col" parent="1" style="text;strokeColor=#d0d0d0;fillColor=#ffffff;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontColor=#000000;" value="Coluna Regular" vertex="1">
+          <mxGeometry height="30" width="200" x="900" y="820" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

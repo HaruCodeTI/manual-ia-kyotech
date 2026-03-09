@@ -1,0 +1,223 @@
+<mxfile host="app.diagrams.net" modified="2026-03-09" type="device" version="21.0.0">
+  <diagram id="sequence-auth-diagram" name="Sequence Auth">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title-box" value="Diagrama de Sequencia — Fluxo de Autenticacao" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Participants -->
+        <!-- Usuário: x=80 -->
+        <mxCell id="p-usuario" value="&lt;b&gt;Usuario&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="10" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- Frontend: x=260 -->
+        <mxCell id="p-frontend" value="&lt;b&gt;Frontend&lt;/b&gt;&lt;br/&gt;(Next.js 16)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- Clerk: x=440 -->
+        <mxCell id="p-clerk" value="&lt;b&gt;Clerk&lt;/b&gt;&lt;br/&gt;(SaaS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- Backend: x=620 -->
+        <mxCell id="p-backend" value="&lt;b&gt;Backend&lt;/b&gt;&lt;br/&gt;(FastAPI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="550" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- Clerk JWKS: x=800 -->
+        <mxCell id="p-jwks" value="&lt;b&gt;Clerk JWKS&lt;/b&gt;&lt;br/&gt;(.well-known/jwks.json)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="730" y="70" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Lifelines -->
+        <mxCell id="ll-usuario" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+            <mxPoint x="80" y="120" as="sourcePoint" />
+            <mxPoint x="80" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-frontend" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="120" as="sourcePoint" />
+            <mxPoint x="260" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-clerk" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="120" as="sourcePoint" />
+            <mxPoint x="440" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-backend" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="120" as="sourcePoint" />
+            <mxPoint x="620" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-jwks" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="810" y="120" as="sourcePoint" />
+            <mxPoint x="810" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 1: Usuario -> Frontend -->
+        <mxCell id="msg-1" value="1. Acessa a aplicacao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="160" as="sourcePoint" />
+            <mxPoint x="260" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 2: Frontend self-call -->
+        <mxCell id="msg-2" value="2. clerkMiddleware() verifica sessao" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="270" y="170" width="260" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ALT frame: Sem sessao ativa -->
+        <mxCell id="alt-sem-sessao" value="alt [Sem sessao ativa]" style="swimlane;startSize=20;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;dashPattern=8 4;fontSize=11;fontStyle=1;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="200" width="880" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="msg-3" value="3. Redireciona para pagina de login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="alt-sem-sessao">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="40" as="sourcePoint" />
+            <mxPoint x="60" y="40" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-4" value="4. Preenche credenciais (&lt;SignIn /&gt;)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="alt-sem-sessao">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="70" as="sourcePoint" />
+            <mxPoint x="240" y="70" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-5" value="5. Envia credenciais para autenticacao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="alt-sem-sessao">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="100" as="sourcePoint" />
+            <mxPoint x="420" y="100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-6" value="6. Retorna sessao + JWT (RS256, TTL 60s)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="alt-sem-sessao">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="130" as="sourcePoint" />
+            <mxPoint x="240" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-7" value="7. Armazena sessao via Clerk SDK" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="alt-sem-sessao">
+          <mxGeometry x="250" y="150" width="280" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Step 8: Usuario -> Frontend (acao que requer API) -->
+        <mxCell id="msg-8" value="8. Realiza acao que requer API (ex: pergunta no chat)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="420" as="sourcePoint" />
+            <mxPoint x="260" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 9: Frontend -> Clerk getToken -->
+        <mxCell id="msg-9" value="9. getToken() — obtem JWT atualizado" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="450" as="sourcePoint" />
+            <mxPoint x="440" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 10: Clerk -> Frontend JWT assinado -->
+        <mxCell id="msg-10" value="10. JWT assinado (RS256)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="480" as="sourcePoint" />
+            <mxPoint x="260" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 11: Frontend -> Backend Bearer JWT -->
+        <mxCell id="msg-11" value="11. HTTP com Authorization: Bearer &lt;JWT&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="510" as="sourcePoint" />
+            <mxPoint x="620" y="510" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 12: Backend self -->
+        <mxCell id="msg-12" value="12. HTTPBearer extrai token do header" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="520" width="280" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ALT frame: Producao vs Dev -->
+        <mxCell id="alt-prod-dev" value="alt [Producao: CLERK_JWKS_URL configurada]" style="swimlane;startSize=20;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;dashPattern=8 4;fontSize=11;fontStyle=1;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="560" width="880" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="msg-13" value="13. PyJWKClient.get_signing_key_from_jwt(token)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="alt-prod-dev">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="40" as="sourcePoint" />
+            <mxPoint x="790" y="40" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-14" value="14. Chave publica RSA para verificacao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="alt-prod-dev">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="790" y="70" as="sourcePoint" />
+            <mxPoint x="600" y="70" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-15" value="15. jwt.decode(token, key, algorithms=[&quot;RS256&quot;])" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="alt-prod-dev">
+          <mxGeometry x="610" y="80" width="300" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ALT Token invalido/expirado/erro -->
+        <mxCell id="alt-token-err" value="alt [Token invalido / expirado / erro JWKS]" style="swimlane;startSize=20;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;dashPattern=8 4;fontSize=10;fontStyle=1;align=left;spacingLeft=5;" vertex="1" parent="alt-prod-dev">
+          <mxGeometry x="10" y="120" width="860" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="msg-err1" value="HTTP 401 Token expirado / Token invalido  |  HTTP 503 Erro JWKS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="alt-token-err">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="590" y="50" as="sourcePoint" />
+            <mxPoint x="250" y="50" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Token valido: extract role -->
+        <mxCell id="msg-16" value="16. Extrai sub (user_id) do payload" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="alt-prod-dev">
+          <mxGeometry x="610" y="220" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="msg-17" value="17. _extract_role(): verifica metadata.role -&gt; CurrentUser(id, role)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="alt-prod-dev">
+          <mxGeometry x="610" y="250" width="270" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ALT require_role -->
+        <mxCell id="alt-role" value="alt [Endpoint requer role especifico]" style="swimlane;startSize=20;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;dashPattern=8 4;fontSize=11;fontStyle=1;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="860" width="880" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="msg-role1" value="18. require_role(role) verifica user.role" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="alt-role">
+          <mxGeometry x="600" y="30" width="270" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="msg-role-ok" value="19. HTTP 200 — Resposta da API [Role compativel]" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="alt-role">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="70" as="sourcePoint" />
+            <mxPoint x="240" y="70" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-role-err" value="20. HTTP 403 — Acesso restrito ao perfil [role] [Role insuficiente]" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="alt-role">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="100" as="sourcePoint" />
+            <mxPoint x="240" y="100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Final: FE -> Usuario -->
+        <mxCell id="msg-final" value="21. Exibe resultado na interface" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="1010" as="sourcePoint" />
+            <mxPoint x="80" y="1010" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

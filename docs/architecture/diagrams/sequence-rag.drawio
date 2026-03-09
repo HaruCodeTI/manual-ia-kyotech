@@ -1,0 +1,230 @@
+<mxfile host="app.diagrams.net" modified="2026-03-09" type="device" version="21.0.0">
+  <diagram id="sequence-rag-diagram" name="Sequence RAG">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title-box" value="Diagrama de Sequencia — Fluxo de Consulta RAG" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Participants -->
+        <!-- Tecnico: x=80 -->
+        <mxCell id="p-tecnico" value="&lt;b&gt;Tecnico de Campo&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="10" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- Frontend: x=250 -->
+        <mxCell id="p-frontend" value="&lt;b&gt;Frontend&lt;/b&gt;&lt;br/&gt;(Next.js 16)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="180" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- Backend: x=420 -->
+        <mxCell id="p-backend" value="&lt;b&gt;Backend&lt;/b&gt;&lt;br/&gt;(FastAPI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="350" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- PostgreSQL: x=590 -->
+        <mxCell id="p-db" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br/&gt;(pgvector + pg_trgm)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="520" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- gpt-4o-mini: x=760 -->
+        <mxCell id="p-mini" value="&lt;b&gt;Azure OpenAI&lt;/b&gt;&lt;br/&gt;(gpt-4o-mini)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="690" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- gpt-4o: x=930 -->
+        <mxCell id="p-gpt4o" value="&lt;b&gt;Azure OpenAI&lt;/b&gt;&lt;br/&gt;(gpt-4o)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Lifelines -->
+        <mxCell id="ll-tecnico" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="120" as="sourcePoint" />
+            <mxPoint x="80" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-frontend" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="120" as="sourcePoint" />
+            <mxPoint x="250" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-backend" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="120" as="sourcePoint" />
+            <mxPoint x="420" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-db" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="590" y="120" as="sourcePoint" />
+            <mxPoint x="590" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-mini" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="760" y="120" as="sourcePoint" />
+            <mxPoint x="760" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-gpt4o" value="" style="edgeStyle=none;dashed=1;endArrow=none;strokeColor=#444444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="120" as="sourcePoint" />
+            <mxPoint x="930" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 1: Tecnico -> Frontend -->
+        <mxCell id="msg-1" value="1. Digita pergunta em portugues (ex: Como trocar o rolo de pressao?)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="160" as="sourcePoint" />
+            <mxPoint x="250" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 2: Frontend -> Backend -->
+        <mxCell id="msg-2" value="2. POST /chat/ask {question, equipment_filter?, session_id?} + Bearer JWT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="190" as="sourcePoint" />
+            <mxPoint x="420" y="190" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 3: Backend self -->
+        <mxCell id="msg-3" value="3. get_current_user() — valida JWT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="200" width="260" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ALT: session_id -->
+        <mxCell id="alt-session" value="alt [session_id fornecido]" style="swimlane;startSize=20;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;dashPattern=8 4;fontSize=11;fontStyle=1;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="230" width="880" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="msg-sess1" value="4a. Usa session_id existente" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="alt-session">
+          <mxGeometry x="400" y="30" width="250" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="msg-sess2" value="4b. create_session(user_id, titulo) -&gt; session_id [Nova conversa]" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="alt-session">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="55" as="sourcePoint" />
+            <mxPoint x="570" y="55" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 5: Backend -> DB: add_message user -->
+        <mxCell id="msg-5" value="5. add_message(session_id, &quot;user&quot;, question)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="330" as="sourcePoint" />
+            <mxPoint x="590" y="330" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- RAG Pipeline frame -->
+        <mxCell id="rag-pipeline-frame" value="Pipeline RAG" style="swimlane;startSize=25;fillColor=#fff8f0;strokeColor=#d79b00;fontSize=13;fontStyle=1;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="360" width="670" height="480" as="geometry" />
+        </mxCell>
+
+        <!-- Step 6: Query Rewrite -->
+        <mxCell id="msg-6" value="6. Query Rewrite: traduzir PT-&gt;EN, expandir termos tecnicos (gpt-4o-mini)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="rag-pipeline-frame">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="50" as="sourcePoint" />
+            <mxPoint x="420" y="50" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-6r" value="7. {query_en, doc_type, equipment_hint}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="rag-pipeline-frame">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="80" as="sourcePoint" />
+            <mxPoint x="80" y="80" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Note: Query rewrite detail -->
+        <mxCell id="note-qr" value="Prompt: traduz PT-&gt;EN,&lt;br/&gt;expande termos tecnicos,&lt;br/&gt;classifica doc_type,&lt;br/&gt;extrai equipment_hint" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ffffc0;strokeColor=#888888;fontSize=10;align=left;spacingLeft=6;size=15;" vertex="1" parent="rag-pipeline-frame">
+          <mxGeometry x="430" y="40" width="210" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- PAR frame: Hybrid Search -->
+        <mxCell id="par-hybrid" value="par [Busca Hibrida — paralela]" style="swimlane;startSize=20;fillColor=#f0fff0;strokeColor=#82b366;dashed=1;dashPattern=8 4;fontSize=11;fontStyle=1;align=left;spacingLeft=5;" vertex="1" parent="rag-pipeline-frame">
+          <mxGeometry x="10" y="130" width="640" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="msg-vec1" value="8. Busca Vetorial (pgvector): query_en -&gt; embedding -&gt; cosine similarity" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="par-hybrid">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="70" y="40" as="sourcePoint" />
+            <mxPoint x="240" y="40" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-vec2" value="9. Resultados vetoriais (ate 8)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="par-hybrid">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="65" as="sourcePoint" />
+            <mxPoint x="70" y="65" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-txt1" value="10. Busca Textual (pg_trgm): query_original -&gt; trigram similarity &gt; 0.05" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="par-hybrid">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="70" y="95" as="sourcePoint" />
+            <mxPoint x="240" y="95" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-txt2" value="11. Resultados textuais (ate 8)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="par-hybrid">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="115" as="sourcePoint" />
+            <mxPoint x="70" y="115" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step: Fusion -->
+        <mxCell id="msg-fusion" value="12. Fusao de resultados (merge por chunk_id)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="rag-pipeline-frame">
+          <mxGeometry x="90" y="275" width="320" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Note: fusion weighting -->
+        <mxCell id="note-fusion" value="Ponderacao: 70% vetorial + 30% textual&lt;br/&gt;Merge por chunk_id&lt;br/&gt;Chunks em ambas: &quot;hybrid&quot;&lt;br/&gt;Ordena por score combinado&lt;br/&gt;Limita a 8 resultados" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ffffc0;strokeColor=#888888;fontSize=10;align=left;spacingLeft=6;size=15;" vertex="1" parent="rag-pipeline-frame">
+          <mxGeometry x="430" y="265" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Step: Generate Response -->
+        <mxCell id="msg-gen1" value="13. Gerar resposta (gpt-4o): responda em PT-BR, use apenas trechos, cite [Fonte N]" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="rag-pipeline-frame">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="360" as="sourcePoint" />
+            <mxPoint x="580" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg-gen2" value="14. Resposta em portugues com citacoes [Fonte N]" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="rag-pipeline-frame">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="400" as="sourcePoint" />
+            <mxPoint x="80" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 15: Parse citacoes -->
+        <mxCell id="msg-15" value="15. Parse de citacoes referenciadas (Regex: [Fonte (\\d+)])" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="860" width="400" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Step 16: Backend -> DB: add_message assistant -->
+        <mxCell id="msg-16" value="16. add_message(session_id, &quot;assistant&quot;, answer, citations, metadata)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="890" as="sourcePoint" />
+            <mxPoint x="590" y="890" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 17: Backend -> Frontend: ChatResponse -->
+        <mxCell id="msg-17" value="17. ChatResponse: {answer, citations[], query_original, query_rewritten, total_sources, model_used, session_id}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="930" as="sourcePoint" />
+            <mxPoint x="250" y="930" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 18: Frontend -> Tecnico -->
+        <mxCell id="msg-18" value="18. Exibe resposta com citacoes clicaveis" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;fontSize=10;html=1;endArrow=open;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="960" as="sourcePoint" />
+            <mxPoint x="80" y="960" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
