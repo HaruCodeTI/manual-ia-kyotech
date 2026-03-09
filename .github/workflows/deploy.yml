@@ -32,8 +32,10 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - '.github/workflows/deploy.yml'
             frontend:
               - 'frontend/**'
+              - '.github/workflows/deploy.yml'
 
   # ─── Testes do Backend ───
   test-backend:
