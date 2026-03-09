@@ -5,100 +5,120 @@ Sistema RAG para consulta de manuais e informativos Fujifilm.
 ## Estrutura do Projeto
 
 ```
-kyotech-backend/
+backend/
 ├── app/
-│   ├── main.py                 # App FastAPI principal
+│   ├── main.py                    # App FastAPI + Scalar docs
 │   ├── api/
-│   │   └── upload.py           # Endpoint de upload de PDFs
+│   │   ├── chat.py                # RAG query endpoint
+│   │   ├── upload.py              # Upload de PDFs
+│   │   ├── sessions.py            # CRUD sessões de chat
+│   │   └── viewer.py              # Viewer seguro (PDF → PNG)
 │   ├── core/
-│   │   ├── config.py           # Configurações (.env)
-│   │   └── database.py         # Conexão PostgreSQL async
+│   │   ├── auth.py                # Autenticação Clerk (JWT/JWKS)
+│   │   ├── config.py              # Configurações (.env)
+│   │   └── database.py            # Conexão PostgreSQL async
 │   └── services/
-│       ├── pdf_extractor.py    # Extração de texto (PyMuPDF)
-│       ├── chunker.py          # Divisão em chunks com overlap
-│       ├── embedder.py         # Geração de vetores (Azure OpenAI)
-│       ├── storage.py          # Upload Blob Storage + URLs assinadas
-│       ├── repository.py       # Operações de banco (CRUD)
-│       └── ingestion.py        # Orquestrador do pipeline
-├── .env.example                # Template de variáveis de ambiente
-├── requirements.txt            # Dependências Python
-└── README.md
+│       ├── pdf_extractor.py       # Extração de texto (PyMuPDF)
+│       ├── chunker.py             # Divisão em chunks com overlap
+│       ├── embedder.py            # Embeddings (Azure OpenAI)
+│       ├── query_rewriter.py      # Rewrite PT → EN (gpt-4o-mini)
+│       ├── search.py              # Busca híbrida (vector + text)
+│       ├── generator.py           # Geração de resposta (gpt-4o)
+│       ├── storage.py             # Azure Blob Storage
+│       ├── repository.py          # CRUD documentos/equipamentos
+│       ├── chat_repository.py     # CRUD sessões/mensagens
+│       ├── viewer.py              # Render PDF → PNG com watermark
+│       └── ingestion.py           # Orquestrador do pipeline
+├── tests/
+│   ├── conftest.py                # Fixtures compartilhadas
+│   ├── unit/                      # Testes unitários (11 módulos)
+│   └── integration/               # Testes de integração (5 endpoints)
+├── requirements.txt               # Dependências de produção
+├── requirements-dev.txt           # Dependências de teste
+├── pytest.ini                     # Configuração do pytest
+├── .env.example                   # Template de variáveis
+└── Dockerfile
 ```
 
 ## Setup Local
 
-### 1. Pré-requisitos
+### Pré-requisitos
 
-- Python 3.11+
+- Python 3.9+
 - PostgreSQL com pgvector (ou acesso ao Azure PostgreSQL)
 - Conta Azure com OpenAI e Blob Storage configurados
 
-### 2. Instalar dependências
+### Instalar dependências
 
 ```bash
-cd kyotech-backend
+cd backend
 python -m venv .venv
-source .venv/bin/activate    # Linux/Mac
-# .venv\Scripts\activate     # Windows
+source .venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
-### 3. Configurar variáveis de ambiente
+### Configurar variáveis de ambiente
 
 ```bash
 cp .env.example .env
 # Edite .env com seus valores reais
 ```
 
-**Valores necessários:**
-- `DATABASE_URL` — String de conexão do PostgreSQL
-- `AZURE_OPENAI_ENDPOINT` — Endpoint do Azure OpenAI
-- `AZURE_OPENAI_API_KEY` — Chave da API
-- `AZURE_STORAGE_CONNECTION_STRING` — Connection string do Blob Storage
-
-### 4. Rodar o servidor
+### Rodar o servidor
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 5. Testar o upload
+## API Docs (Scalar)
 
-Acesse `http://localhost:8000/docs` para a documentação interativa (Swagger).
+Acesse `http://localhost:8000/docs` para a documentação interativa da API (Scalar).
 
-Ou via curl:
+O schema OpenAPI é gerado automaticamente pelo FastAPI.
+
+## Rodar Testes
+
 ```bash
-curl -X POST http://localhost:8000/api/v1/upload/document \
-  -F "file=@manual_frontier_780.pdf" \
-  -F "equipment_key=frontier-780" \
-  -F "doc_type=manual" \
-  -F "published_date=2025-01-15"
+# Instalar dependências de teste
+pip install -r requirements-dev.txt
+
+# Rodar todos os testes
+python -m pytest -v
+
+# Com cobertura
+python -m pytest --cov=app --cov-report=term-missing -v
+
+# Apenas unitários
+python -m pytest tests/unit/ -v
+
+# Apenas integração
+python -m pytest tests/integration/ -v
 ```
+
+Os testes usam mocks robustos (AsyncMock) — não precisam de banco de dados ou serviços Azure.
+
+## Documentação
+
+- **API Docs:** `http://localhost:8000/docs` (Scalar)
+- **Diagramas C4:** `docs/architecture/c4-context.md`, `docs/architecture/c4-container.md`
+- **Diagramas de Sequência:** `docs/architecture/sequence-*.md`
+- **Casos de Uso:** `docs/use-cases/UC01-UC06.md`
+- **ADRs:** `docs/adrs/ADR-*.md`
+- **Modelo de Dados:** `docs/database/DATA_MODEL.md`
 
 ## Pipeline de Ingestion
 
 ```
-PDF Upload
-    │
-    ▼
-Extração de Texto (PyMuPDF)
-    │  → texto por página
-    ▼
-Detecção de Duplicatas (SHA-256)
-    │  → se hash já existe, pula
-    ▼
-Upload Blob Storage
-    │  → container/equipment/date/filename.pdf
-    ▼
-Chunking (800 chars, 200 overlap)
-    │  → preserva número da página
-    ▼
-Embeddings (Azure OpenAI)
-    │  → text-embedding-3-small (1536 dim)
-    ▼
-PostgreSQL + pgvector
-    │  → chunks com vetores indexados
-    ▼
-✅ Pronto para busca RAG
+PDF Upload → Extração de Texto (PyMuPDF) → SHA-256 Dedup
+    → Upload Blob Storage → Chunking (800/200)
+    → Embeddings (text-embedding-3-small) → PostgreSQL + pgvector
+```
+
+## Pipeline RAG
+
+```
+Pergunta (PT) → Query Rewrite (gpt-4o-mini: PT→EN)
+    → Busca Híbrida (70% vector + 30% trigram)
+    → Geração de Resposta (gpt-4o com citações [Fonte N])
 ```

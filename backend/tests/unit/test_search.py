@@ -1,0 +1,120 @@
+"""
+Kyotech AI — Testes unitários para app.services.search
+"""
+from __future__ import annotations
+
+from datetime import date
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from app.services.search import SearchResult, vector_search, text_search, hybrid_search
+
+
+# ── Helpers ──
+
+def _make_row(chunk_id="c1", content="texto", page=1, similarity=0.9,
+              doc_id="d1", doc_type="manual", equip="equip-a",
+              pub_date=date(2024, 1, 1), filename="f.pdf",
+              storage="container/blob", version_id="v1"):
+    return (chunk_id, content, page, similarity, doc_id, doc_type,
+            equip, pub_date, filename, storage, version_id)
+
+
+# ── vector_search ──
+
+@pytest.mark.asyncio
+async def test_vector_search_returns_search_results(mock_db, make_mock_result):
+    rows = [_make_row(), _make_row(chunk_id="c2", similarity=0.8)]
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=rows))
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await vector_search(mock_db, "query")
+
+    assert len(results) == 2
+    assert all(isinstance(r, SearchResult) for r in results)
+    assert results[0].search_type == "vector"
+    assert results[0].chunk_id == "c1"
+
+
+@pytest.mark.asyncio
+async def test_vector_search_handles_empty_results(mock_db, make_mock_result):
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await vector_search(mock_db, "nothing here")
+
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_vector_search_passes_filters(mock_db, make_mock_result):
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        await vector_search(mock_db, "q", doc_type="manual", equipment_key="pump-x")
+
+    call_args = mock_db.execute.call_args
+    sql_text = str(call_args[0][0].text)
+    params = call_args[1] if call_args[1] else call_args[0][1]
+    assert "doc_type" in params
+    assert "equipment" in params
+
+
+# ── text_search ──
+
+@pytest.mark.asyncio
+async def test_text_search_returns_text_type(mock_db, make_mock_result):
+    rows = [_make_row(similarity=0.5)]
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=rows))
+
+    results = await text_search(mock_db, "code 123")
+
+    assert len(results) == 1
+    assert results[0].search_type == "text"
+
+
+# ── hybrid_search ──
+
+@pytest.mark.asyncio
+async def test_hybrid_search_merges_and_deduplicates(mock_db, make_mock_result):
+    """Same chunk_id in both searches → search_type becomes 'hybrid'."""
+    shared_row = _make_row(chunk_id="shared", similarity=0.9)
+    vector_only = _make_row(chunk_id="vec-only", similarity=0.7)
+    text_only = _make_row(chunk_id="txt-only", similarity=0.6)
+
+    vector_result = make_mock_result(rows=[shared_row, vector_only])
+    text_result = make_mock_result(rows=[shared_row, text_only])
+
+    call_count = 0
+
+    async def side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return vector_result
+        return text_result
+
+    mock_db.execute = AsyncMock(side_effect=side_effect)
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await hybrid_search(mock_db, "query en", "query pt")
+
+    chunk_ids = [r.chunk_id for r in results]
+    # No duplicates
+    assert len(chunk_ids) == len(set(chunk_ids))
+    # shared chunk should be "hybrid"
+    shared = [r for r in results if r.chunk_id == "shared"]
+    assert len(shared) == 1
+    assert shared[0].search_type == "hybrid"
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_respects_limit(mock_db, make_mock_result):
+    rows = [_make_row(chunk_id=f"c{i}", similarity=0.9 - i * 0.1) for i in range(5)]
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=rows))
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await hybrid_search(mock_db, "q", "q", limit=3)
+
+    assert len(results) <= 3

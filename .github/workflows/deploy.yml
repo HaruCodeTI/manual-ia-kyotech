@@ -35,9 +35,33 @@ jobs:
             frontend:
               - 'frontend/**'
 
+  # ─── Testes do Backend ───
+  test-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        run: |
+          cd backend
+          python -m pytest --cov=app --cov-report=term-missing -v
+
   # ─── Build e Deploy do Backend ───
   deploy-backend:
-    needs: changes
+    needs: [changes, test-backend]
     if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:

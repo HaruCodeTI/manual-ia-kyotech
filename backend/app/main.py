@@ -7,6 +7,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from scalar_fastapi import get_scalar_api_reference
 
 from app.api.upload import router as upload_router
 from app.api.chat import router as chat_router
@@ -23,6 +24,8 @@ app = FastAPI(
     title="Kyotech AI",
     description="Sistema RAG interno para consulta de manuais e informativos Fujifilm",
     version="0.1.0",
+    docs_url=None,
+    redoc_url=None,
 )
 
 app.add_middleware(
@@ -50,3 +53,11 @@ app.include_router(viewer_router, prefix="/api/v1")
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "kyotech-ai"}
+
+
+@app.get("/docs", include_in_schema=False)
+async def scalar_docs():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title="Kyotech AI — API Docs",
+    )
