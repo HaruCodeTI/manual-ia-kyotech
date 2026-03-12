@@ -93,7 +93,7 @@ async def ask_question(
         query_en=rewritten.query_en,
         query_original=question,
         limit=8,
-        doc_type=None,
+        doc_type=rewritten.doc_type,
         equipment_key=equipment_filter,
     )
     logger.info(f"Resultados encontrados: {len(results)}")
