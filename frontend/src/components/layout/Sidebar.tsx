@@ -91,19 +91,19 @@ export function Sidebar({
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 md:static",
           open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          collapsed ? "md:w-16" : "w-60"
+          collapsed ? "md:w-16" : "w-60",
         )}
       >
         {/* Logo */}
         <div
           className={cn(
             "flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border px-4",
-            collapsed && "md:justify-center md:px-0"
+            collapsed && "md:justify-center md:px-0",
           )}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/kyotech-icon.png"
+            src="/kyotech-icon-light.png"
             alt="Kyotech"
             className="h-9 w-9 shrink-0 rounded-lg object-contain"
           />
@@ -133,10 +133,15 @@ export function Sidebar({
                   collapsed && "md:justify-center md:px-0",
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                 )}
               >
-                <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-sidebar-primary")} />
+                <Icon
+                  className={cn(
+                    "h-[18px] w-[18px] shrink-0",
+                    active && "text-sidebar-primary",
+                  )}
+                />
                 {!collapsed && label}
               </Link>
             );
@@ -193,7 +198,7 @@ export function Sidebar({
                       "group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-all duration-150",
                       activeSessionId === s.id
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                     )}
                   >
                     <span className="flex-1 truncate">

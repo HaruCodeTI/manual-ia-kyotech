@@ -70,3 +70,4 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 uvicorn.log
+backend/scripts/manuals/

@@ -20,12 +20,26 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Status = "idle" | "uploading" | "success" | "error";
+
+type FieldErrors = {
+  file?: string;
+  equipment_key?: string;
+  doc_type?: string;
+  published_date?: string;
+};
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-destructive">{message}</p>;
+}
 
 export function UploadForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [result, setResult] = useState<UploadResponse | null>(null);
   const [docType, setDocType] = useState("");
   const [fileName, setFileName] = useState("");
@@ -40,15 +54,6 @@ export function UploadForm() {
     const fileInput = form.elements.namedItem("file") as HTMLInputElement;
     const file = fileInput?.files?.[0];
 
-    if (!file) {
-      setError("Selecione um arquivo PDF.");
-      return;
-    }
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Apenas arquivos PDF são aceitos.");
-      return;
-    }
-
     const equipmentKey = (
       form.elements.namedItem("equipment_key") as HTMLInputElement
     ).value.trim();
@@ -59,13 +64,33 @@ export function UploadForm() {
       form.elements.namedItem("equipment_display_name") as HTMLInputElement
     ).value.trim();
 
-    if (!equipmentKey || !docType || !publishedDate) {
-      setError("Preencha todos os campos obrigatórios.");
-      return;
+    const errors: FieldErrors = {};
+
+    if (!file) {
+      errors.file = "Selecione um arquivo PDF.";
+    } else if (!file.name.toLowerCase().endsWith(".pdf")) {
+      errors.file = "Apenas arquivos PDF são aceitos.";
     }
 
+    if (!equipmentKey) {
+      errors.equipment_key = "Informe a chave do equipamento (ex: frontier-780).";
+    } else if (!/^[a-z0-9][a-z0-9-]*$/.test(equipmentKey)) {
+      errors.equipment_key = "Use apenas letras minúsculas, números e hífens.";
+    }
+
+    if (!docType) {
+      errors.doc_type = "Selecione o tipo de documento.";
+    }
+
+    if (!publishedDate) {
+      errors.published_date = "Informe a data de publicação do documento.";
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     const fd = new FormData();
-    fd.append("file", file);
+    fd.append("file", file!);
     fd.append("equipment_key", equipmentKey);
     fd.append("doc_type", docType);
     fd.append("published_date", publishedDate);
@@ -79,6 +104,7 @@ export function UploadForm() {
       formRef.current?.reset();
       setFileName("");
       setDocType("");
+      setFieldErrors({});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar documento");
       setStatus("error");
@@ -104,7 +130,10 @@ export function UploadForm() {
               <label className="mb-1.5 block text-sm font-medium">
                 Arquivo PDF *
               </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-colors hover:border-primary hover:bg-accent">
+              <label className={cn(
+                "flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-colors hover:border-primary hover:bg-accent",
+                fieldErrors.file && "border-destructive"
+              )}>
                 <FileText className="h-8 w-8 text-muted-foreground" />
                 <div className="flex-1 text-sm">
                   {fileName ? (
@@ -120,11 +149,13 @@ export function UploadForm() {
                   name="file"
                   accept=".pdf"
                   className="hidden"
-                  onChange={(e) =>
-                    setFileName(e.target.files?.[0]?.name || "")
-                  }
+                  onChange={(e) => {
+                    setFileName(e.target.files?.[0]?.name || "");
+                    setFieldErrors((prev) => ({ ...prev, file: undefined }));
+                  }}
                 />
               </label>
+              <FieldError message={fieldErrors.file} />
             </div>
 
             <div>
@@ -134,15 +165,27 @@ export function UploadForm() {
               <Input
                 name="equipment_key"
                 placeholder="ex: frontier-780"
+                className={cn(fieldErrors.equipment_key && "border-destructive")}
+                onChange={() => setFieldErrors((prev) => ({ ...prev, equipment_key: undefined }))}
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Identificador único do equipamento — letras minúsculas, números e hífens
+              </p>
+              <FieldError message={fieldErrors.equipment_key} />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">
                 Tipo de documento *
               </label>
-              <Select value={docType} onValueChange={setDocType}>
-                <SelectTrigger>
+              <Select
+                value={docType}
+                onValueChange={(v) => {
+                  setDocType(v);
+                  setFieldErrors((prev) => ({ ...prev, doc_type: undefined }));
+                }}
+              >
+                <SelectTrigger className={cn(fieldErrors.doc_type && "border-destructive")}>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,13 +193,23 @@ export function UploadForm() {
                   <SelectItem value="informativo">Informativo</SelectItem>
                 </SelectContent>
               </Select>
+              <FieldError message={fieldErrors.doc_type} />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">
                 Data de publicação *
               </label>
-              <Input type="date" name="published_date" />
+              <Input
+                type="date"
+                name="published_date"
+                className={cn(fieldErrors.published_date && "border-destructive")}
+                onChange={() => setFieldErrors((prev) => ({ ...prev, published_date: undefined }))}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Data de publicação original do documento
+              </p>
+              <FieldError message={fieldErrors.published_date} />
             </div>
 
             <div>

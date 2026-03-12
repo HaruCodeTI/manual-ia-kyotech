@@ -6,7 +6,7 @@ import { useChatContext } from "@/lib/chat-context";
 import type { Message, ChatSessionDetail } from "@/types";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
-import { Loader2 } from "lucide-react";
+import { Bot, Loader2 } from "lucide-react";
 
 export function ChatWindow() {
   const { activeSessionId, setActiveSessionId } = useChatContext();
@@ -120,12 +120,9 @@ export function ChatWindow() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/kyotech-logo.png"
-              alt="Kyotech"
-              className="h-14 w-auto object-contain opacity-60 dark:opacity-80"
-            />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+              <Bot className="h-8 w-8 text-primary" />
+            </div>
             <div className="space-y-2">
               <h2 className="text-lg font-semibold tracking-tight text-foreground">
                 Como posso ajudar?

@@ -119,6 +119,8 @@ jobs:
           docker build --platform linux/amd64 \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
             --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
+            --build-arg NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in \
+            --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-in \
             -t $IMAGE -t $IMAGE_LATEST .
           docker push $IMAGE
           docker push $IMAGE_LATEST
