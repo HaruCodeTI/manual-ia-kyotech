@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.search import SearchResult, vector_search, text_search, hybrid_search
+from app.services.search import SearchResult, vector_search, text_search, hybrid_search, EQUIPMENT_BOOST, MIN_SCORE_THRESHOLD
 
 
 # ── Helpers ──
@@ -118,3 +118,34 @@ async def test_hybrid_search_respects_limit(mock_db, make_mock_result):
         results = await hybrid_search(mock_db, "q", "q", limit=3)
 
     assert len(results) <= 3
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_boosts_matching_equipment(mock_db, make_mock_result):
+    """Chunks from the queried equipment get a score boost."""
+    matching = _make_row(chunk_id="match", similarity=0.5, equip="frontier-780")
+    other = _make_row(chunk_id="other", similarity=0.5, equip="frontier-590")
+
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[matching, other]))
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await hybrid_search(mock_db, "q", "q", equipment_key="frontier-780")
+
+    assert results[0].chunk_id == "match"
+    assert results[0].similarity > results[1].similarity
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_filters_low_scores(mock_db, make_mock_result):
+    """Results below MIN_SCORE_THRESHOLD are excluded."""
+    good = _make_row(chunk_id="good", similarity=0.8)
+    bad = _make_row(chunk_id="bad", similarity=0.05)
+
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[good, bad]))
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await hybrid_search(mock_db, "q", "q")
+
+    chunk_ids = [r.chunk_id for r in results]
+    assert "good" in chunk_ids
+    assert "bad" not in chunk_ids

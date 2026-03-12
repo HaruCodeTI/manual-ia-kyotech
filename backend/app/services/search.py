@@ -184,6 +184,10 @@ async def text_search(
     ]
 
 
+EQUIPMENT_BOOST = 0.10
+MIN_SCORE_THRESHOLD = 0.15
+
+
 async def hybrid_search(
     db: AsyncSession,
     query_en: str,
@@ -191,23 +195,25 @@ async def hybrid_search(
     limit: int = 8,
     doc_type: Optional[str] = None,
     equipment_key: Optional[str] = None,
-    vector_weight: float = 0.7,
-    text_weight: float = 0.3,
+    vector_weight: float = 0.65,
+    text_weight: float = 0.35,
 ) -> List[SearchResult]:
     """
     Busca híbrida: combina vetorial (query em EN) + textual (query original PT).
-    
+
     A busca vetorial usa a query em inglês (melhor match com manuais EN).
     A busca textual usa a query original (pega códigos, números exatos).
-    
+
     Resultados são fundidos por chunk_id com score ponderado.
+    Aplica boost para documentos do equipamento mencionado na query
+    e filtra resultados abaixo do threshold mínimo.
     """
-    # Executa ambas as buscas
+    # Executa ambas as buscas (sem filtro de equipment para não excluir resultados úteis)
     vector_results = await vector_search(
-        db, query_en, limit=limit, doc_type=doc_type, equipment_key=equipment_key
+        db, query_en, limit=limit, doc_type=doc_type
     )
     text_results = await text_search(
-        db, query_original, limit=limit, doc_type=doc_type, equipment_key=equipment_key
+        db, query_original, limit=limit, doc_type=doc_type
     )
 
     logger.info(
@@ -230,13 +236,26 @@ async def hybrid_search(
             merged[r.chunk_id] = r
             scores[r.chunk_id] = r.similarity * text_weight
 
+    # Boost para documentos do equipamento mencionado
+    if equipment_key:
+        for chunk_id, result in merged.items():
+            if result.equipment_key and result.equipment_key == equipment_key:
+                scores[chunk_id] += EQUIPMENT_BOOST
+
     # Ordena por score combinado
     sorted_ids = sorted(scores, key=lambda k: scores[k], reverse=True)
 
     results = []
     for chunk_id in sorted_ids[:limit]:
+        score = scores[chunk_id]
+        if score < MIN_SCORE_THRESHOLD:
+            continue
         result = merged[chunk_id]
-        result.similarity = scores[chunk_id]
+        result.similarity = score
         results.append(result)
+
+    logger.info(
+        f"Busca híbrida final: {len(results)} resultados (threshold={MIN_SCORE_THRESHOLD})"
+    )
 
     return results
