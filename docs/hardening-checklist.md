@@ -13,7 +13,8 @@
 | Blob Storage (`stkyotechai`) | Desabilitado | `pe-blob-kyotech` | OK |
 | PostgreSQL (`psql-kyotech`) | Desabilitado | `pe-postgres-kyotech` (10.0.2.6) | OK (12/03/2026) |
 | Container Apps (frontend) | Público (HTTPS) | N/A | Avaliar restrição IP |
-| NSGs | Não configurados | N/A | Opcional (pós-demo) |
+| NSG `nsg-snet-app` | Associado a `snet-app` | N/A | OK (12/03/2026) |
+| NSG `nsg-snet-endpoints` | Associado a `snet-endpoints` | N/A | OK (12/03/2026) |
 
 ---
 
@@ -228,19 +229,19 @@ az containerapp ingress access-restriction set \
 | Restrição de IP | $0 (sem mudança) |
 | **Total adicional** | **$0** |
 
-Hardening via NSGs + Private Endpoints não tem custo adicional — os Private Endpoints já estão provisionados e pagos ($7.30/cada × 2 = $14.60/mês).
+Hardening via NSGs + Private Endpoints não tem custo adicional — os Private Endpoints já estão provisionados e pagos ($7.30/cada × 3 = $21.90/mês).
 
 ---
 
 ## Ordem de Execução
 
 ```
-1. Fechar PostgreSQL .......... (30 min) → validar chat + upload
-2. Configurar NSGs ............ (1 hora) → validar tudo novamente
-3. Restrição IP (opcional) .... (15 min) → decidir com cliente
+1. Fechar PostgreSQL .......... (30 min) → validar chat + upload     ✅ Concluído 12/03/2026
+2. Configurar NSGs ............ (1 hora) → validar tudo novamente    ✅ Concluído 12/03/2026
+3. Restrição IP (opcional) .... (15 min) → decidir com cliente       ⏳ Pós-demo
 ```
 
-**Tempo total: ~1h30 de execução + validação**
+**Etapas 1 e 2 concluídas em 12/03/2026. Produção validada após cada etapa.**
 
 ---
 
