@@ -11,9 +11,9 @@
 |---------|---------------|-----------------|--------|
 | Azure OpenAI (`aoai-kyotech`) | Desabilitado | `pe-openai-kyotech` | OK |
 | Blob Storage (`stkyotechai`) | Desabilitado | `pe-blob-kyotech` | OK |
-| PostgreSQL (`psql-kyotech`) | **Habilitado** | VNet Integration | **PENDENTE** |
+| PostgreSQL (`psql-kyotech`) | Desabilitado | `pe-postgres-kyotech` (10.0.2.6) | OK (12/03/2026) |
 | Container Apps (frontend) | Público (HTTPS) | N/A | Avaliar restrição IP |
-| NSGs | Não configurados | N/A | **PENDENTE** |
+| NSGs | Não configurados | N/A | Opcional (pós-demo) |
 
 ---
 

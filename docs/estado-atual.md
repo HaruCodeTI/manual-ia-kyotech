@@ -107,10 +107,11 @@ Sistema RAG (Retrieval-Augmented Generation) interno e privado para a Kyotech, p
 
 #### Private Endpoints
 
-| Nome | Recurso alvo | Sub-resource | Subnet | Região |
-|---|---|---|---|---|
-| `pe-blob-kyotech` | `stkyotechai` | blob | `snet-endpoints` | Canada Central |
-| `pe-openai-kyotech` | `aoai-kyotech` | account | `snet-endpoints` | Canada Central |
+| Nome | Recurso alvo | Sub-resource | Subnet | IP Privado | Região |
+|---|---|---|---|---|---|
+| `pe-blob-kyotech` | `stkyotechai` | blob | `snet-endpoints` | — | Canada Central |
+| `pe-openai-kyotech` | `aoai-kyotech` | account | `snet-endpoints` | — | Canada Central |
+| `pe-postgres-kyotech` | `psql-kyotech` | postgresqlServer | `snet-endpoints` | 10.0.2.6 | Canada Central |
 
 #### Private DNS Zones
 
@@ -125,8 +126,8 @@ Sistema RAG (Retrieval-Augmented Generation) interno e privado para a Kyotech, p
 | Item | Status |
 |---|---|
 | Todos os serviços sem acesso público | ✅ |
-| Private Endpoints para Blob e OpenAI | ✅ |
-| PostgreSQL isolado via VNet Integration | ✅ |
+| Private Endpoints para Blob, OpenAI e PostgreSQL | ✅ |
+| PostgreSQL isolado via Private Endpoint | ✅ |
 | Storage com acesso anônimo desabilitado | ✅ |
 | TLS 1.2 mínimo em todos os serviços | ✅ |
 | Azure Firewall | ⏳ Fase 2 (subnet reservada) |
@@ -424,9 +425,11 @@ $$ LANGUAGE plpgsql;
 
 ## 8. Checklist de Segurança Pendente (Revogar na Fase 2)
 
-- [ ] Remover regra de firewall pública do PostgreSQL
-- [ ] Implementar Azure Firewall Basic na `AzureFirewallSubnet`
-- [ ] Configurar NSG com deny-all outbound + allow explícito
+- [x] Remover regra de firewall pública do PostgreSQL (12/03/2026)
+- [x] Criar Private Endpoint para PostgreSQL (12/03/2026)
+- [x] Desabilitar acesso público do PostgreSQL (12/03/2026)
+- [ ] Implementar Azure Firewall Basic na `AzureFirewallSubnet` (Fase 3)
+- [ ] Configurar NSG com deny-all outbound + allow explícito (pós-demo)
 - [ ] Auditar logs de acesso ao Blob Storage
 - [ ] Configurar RBAC granular para usuários do sistema
 

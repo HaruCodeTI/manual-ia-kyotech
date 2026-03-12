@@ -9,8 +9,9 @@ Estes custos existem independente do uso:
 | PostgreSQL Flexible Server | B2s (2 vCores, 4 GB RAM, 32 GB storage) | $53.32 |
 | Container Apps (2 apps) | Consumption plan (free tier cobre o uso) | $0.00 |
 | Container Registry | Basic tier (10 GB) | $5.00 |
-| VNet + 3 Private Endpoints | Blob + OpenAI + Postgres ($7.30 cada) | $21.90 |
-| **Total fixo** | | **$80.22/mês** |
+| VNet + 3 Private Endpoints | Blob + OpenAI + PostgreSQL ($7.30 cada) | $21.90 |
+| Private DNS Zones (4 zonas) | Blob + OpenAI + PostgreSQL VNet + PostgreSQL PE | ~$2.00 |
+| **Total fixo** | | **$82.22/mês** |
 
 ---
 
