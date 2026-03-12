@@ -4,8 +4,42 @@ import ReactMarkdown from "react-markdown";
 import type { Message, Citation } from "@/types";
 import { CitationBadge } from "./CitationBadge";
 import { cn } from "@/lib/utils";
-import { User, Bot, Loader2 } from "lucide-react";
-import { type ReactNode } from "react";
+import { User, Bot } from "lucide-react";
+import { type ReactNode, useState, useEffect } from "react";
+
+const LOADING_MESSAGES = [
+  "Analisando sua pergunta…",
+  "Buscando nos manuais Fujifilm…",
+  "Lendo os trechos relevantes…",
+  "Preparando a resposta…",
+];
+
+function LoadingIndicator() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 text-muted-foreground">
+      <div className="flex gap-1">
+        <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:0ms]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:150ms]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:300ms]" />
+      </div>
+      <span
+        key={index}
+        className="text-sm animate-in fade-in slide-in-from-bottom-1 duration-300"
+      >
+        {LOADING_MESSAGES[index]}
+      </span>
+    </div>
+  );
+}
 
 interface MessageBubbleProps {
   message: Message;
@@ -94,10 +128,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
       >
         {message.isLoading ? (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Buscando nos manuais…</span>
-          </div>
+          <LoadingIndicator />
         ) : isUser ? (
           <p>{message.content}</p>
         ) : (
