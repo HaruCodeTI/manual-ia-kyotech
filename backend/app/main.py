@@ -4,15 +4,19 @@ Kyotech AI — Aplicação Principal
 from __future__ import annotations
 
 import logging
+import pathlib
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
+from sqlalchemy import text
 
 from app.api.upload import router as upload_router
 from app.api.chat import router as chat_router
 from app.api.sessions import router as sessions_router
 from app.api.viewer import router as viewer_router
+from app.core.database import engine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,7 +24,38 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
+logger = logging.getLogger(__name__)
+
+MIGRATIONS_DIR = pathlib.Path(__file__).parent.parent / "migrations"
+
+
+async def run_migrations() -> None:
+    """Executa todos os arquivos .sql em migrations/ em ordem alfabética."""
+    if not MIGRATIONS_DIR.exists():
+        logger.warning("Diretório de migrations não encontrado: %s", MIGRATIONS_DIR)
+        return
+
+    sql_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
+    if not sql_files:
+        logger.info("Nenhuma migration encontrada.")
+        return
+
+    async with engine.begin() as conn:
+        for sql_file in sql_files:
+            logger.info("Executando migration: %s", sql_file.name)
+            sql = sql_file.read_text()
+            await conn.execute(text(sql))
+            logger.info("Migration concluída: %s", sql_file.name)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await run_migrations()
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Kyotech AI",
     description="Sistema RAG interno para consulta de manuais e informativos Fujifilm",
     version="0.1.0",
