@@ -119,3 +119,69 @@ async def test_list_equipments(async_client):
     data = resp.json()
     assert len(data) == 2
     assert data[0]["equipment_key"] == "frontier-780"
+
+
+@pytest.mark.anyio
+async def test_upload_without_metadata_succeeds(async_client, sample_pdf_bytes):
+    """Upload sem equipment_key, doc_type e published_date deve ser aceito."""
+    from app.services.ingestion import IngestionResult
+
+    mock_result = IngestionResult(
+        success=True,
+        message="Documento ingerido.",
+        document_id="doc-999",
+        version_id="ver-999",
+        total_pages=1,
+        total_chunks=5,
+    )
+
+    with patch("app.api.upload.ingest_document", new_callable=AsyncMock, return_value=mock_result):
+        resp = await async_client.post(
+            "/api/v1/upload/document",
+            files={"file": ("sem-meta.pdf", sample_pdf_bytes, "application/pdf")},
+            data={},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["success"] is True
+
+
+@pytest.mark.anyio
+async def test_upload_invalid_doc_type_when_provided(async_client, sample_pdf_bytes):
+    """doc_type inválido quando fornecido deve retornar 400."""
+    resp = await async_client.post(
+        "/api/v1/upload/document",
+        files={"file": ("manual.pdf", sample_pdf_bytes, "application/pdf")},
+        data={"doc_type": "invalido"},
+    )
+    assert resp.status_code == 400
+    assert "doc_type" in resp.json()["detail"]
+
+
+@pytest.mark.anyio
+async def test_upload_rejects_empty_file(async_client):
+    """Arquivo de 0 bytes deve retornar 400."""
+    resp = await async_client.post(
+        "/api/v1/upload/document",
+        files={"file": ("vazio.pdf", b"", "application/pdf")},
+        data={},
+    )
+    assert resp.status_code == 400
+    assert "vazio" in resp.json()["detail"].lower()
+
+
+@pytest.mark.anyio
+async def test_upload_rejects_oversized_file(async_client):
+    """Arquivo acima do limite deve retornar 400."""
+    from unittest.mock import patch
+    import app.api.upload as upload_module
+
+    with patch.object(upload_module.settings, "max_upload_size_mb", 0):
+        resp = await async_client.post(
+            "/api/v1/upload/document",
+            files={"file": ("grande.pdf", b"PDF content", "application/pdf")},
+            data={},
+        )
+
+    assert resp.status_code == 400
+    assert "excede" in resp.json()["detail"].lower()
