@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     chunk_size: int = 800
     chunk_overlap: int = 200
+    max_upload_size_mb: int = 200
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
