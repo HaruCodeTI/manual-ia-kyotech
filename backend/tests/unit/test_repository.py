@@ -103,8 +103,21 @@ async def test_insert_chunks_inserts_all(mock_db, make_mock_result):
     count = await insert_chunks_with_embeddings(mock_db, uuid4(), chunks, embeddings)
 
     assert count == 3
-    # 1 DELETE + 3 INSERTs = 4 execute calls
-    assert mock_db.execute.call_count == 4
+    # 1 DELETE + 1 INSERT em lote = 2 execute calls (era 4 antes do batch)
+    assert mock_db.execute.call_count == 2
+    mock_db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_insert_chunks_empty_list(mock_db, make_mock_result):
+    """Lista vazia deve fazer apenas o DELETE e retornar 0."""
+    mock_db.execute = AsyncMock(return_value=make_mock_result())
+
+    count = await insert_chunks_with_embeddings(mock_db, uuid4(), [], [])
+
+    assert count == 0
+    # Apenas o DELETE é executado — sem INSERT
+    assert mock_db.execute.call_count == 1
     mock_db.commit.assert_awaited_once()
 
 

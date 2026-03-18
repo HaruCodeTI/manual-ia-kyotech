@@ -137,26 +137,35 @@ async def insert_chunks_with_embeddings(
         {"vid": str(version_id)},
     )
 
-    for chunk, embedding in zip(chunks, embeddings):
-        embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
+    if not chunks:
+        await db.commit()
+        return 0
 
-        await db.execute(
-            text("""
-                INSERT INTO chunks
-                    (document_version_id, page_number, chunk_index, content, embedding)
-                VALUES
-                    (:version_id, :page, :idx, :content, :embedding)
-                ON CONFLICT (document_version_id, page_number, chunk_index) DO UPDATE
-                SET content = EXCLUDED.content, embedding = EXCLUDED.embedding
-            """),
-            {
-                "version_id": str(version_id),
-                "page": chunk.page_number,
-                "idx": chunk.chunk_index,
-                "content": chunk.content,
-                "embedding": embedding_str,
-            },
+    params: dict = {"version_id": str(version_id)}
+    value_rows: list = []
+
+    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        # Seguro: valores de embedding são passados como parâmetros nomeados (:N_emb),
+        # não interpolados diretamente na string SQL — sem risco de SQL injection.
+        embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
+        value_rows.append(
+            f"(:version_id, :{i}_page, :{i}_idx, :{i}_content, :{i}_emb::vector)"
         )
+        params[f"{i}_page"] = chunk.page_number
+        params[f"{i}_idx"] = chunk.chunk_index
+        params[f"{i}_content"] = chunk.content
+        params[f"{i}_emb"] = embedding_str
+
+    await db.execute(
+        text(f"""
+            INSERT INTO chunks
+                (document_version_id, page_number, chunk_index, content, embedding)
+            VALUES {", ".join(value_rows)}
+            ON CONFLICT (document_version_id, page_number, chunk_index) DO UPDATE
+            SET content = EXCLUDED.content, embedding = EXCLUDED.embedding
+        """),
+        params,
+    )
 
     await db.commit()
     logger.info(f"Inseridos {len(chunks)} chunks para versão {version_id}")
