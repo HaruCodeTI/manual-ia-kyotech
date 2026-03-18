@@ -28,8 +28,8 @@ export interface ChatRequest {
 export interface UploadResponse {
   success: boolean;
   message: string;
-  document_id: string;
-  version_id: string;
+  document_id?: string;   // None quando was_duplicate=true
+  version_id?: string;    // None quando was_duplicate=true
   total_pages: number;
   total_chunks: number;
   was_duplicate: boolean;
