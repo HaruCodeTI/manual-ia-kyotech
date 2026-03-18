@@ -44,7 +44,11 @@ async def run_migrations() -> None:
         for sql_file in sql_files:
             logger.info("Executando migration: %s", sql_file.name)
             sql = sql_file.read_text()
-            await conn.execute(text(sql))
+            # asyncpg não aceita múltiplos comandos em um prepared statement —
+            # divide por ';' e executa cada statement individualmente
+            statements = [s.strip() for s in sql.split(";") if s.strip() and not all(l.startswith("--") for l in s.strip().splitlines())]
+            for stmt in statements:
+                await conn.execute(text(stmt))
             logger.info("Migration concluída: %s", sql_file.name)
 
 
