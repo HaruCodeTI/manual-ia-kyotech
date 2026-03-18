@@ -251,3 +251,69 @@ export async function deleteSession(sessionId: string): Promise<void> {
   }
   if (!res.ok) throw new Error(await parseApiError(res));
 }
+
+export async function uploadDocumentWithProgress(
+  formData: FormData,
+  onProgress: (percent: number) => void,
+  onProcessing: () => void,
+  signal?: AbortSignal, // reservado — sem lógica de cancelamento nesta versão
+): Promise<UploadResponse> {
+  const auth = await authHeaders();
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        // Cap em 99% — 100% sinaliza que o servidor está processando
+        onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+      }
+    });
+
+    xhr.upload.addEventListener("load", () => {
+      onProgress(100);
+      onProcessing(); // Muda status para "processando" no componente
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as UploadResponse);
+        } catch {
+          reject(new Error("Resposta inválida do servidor."));
+        }
+      } else {
+        // Reutiliza parseApiError criando um Response sintético a partir do XHR
+        const fakeResponse = new Response(xhr.responseText, {
+          status: xhr.status,
+        });
+        parseApiError(fakeResponse).then((msg) => reject(new Error(msg)));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(
+        new Error(
+          "Não foi possível conectar ao servidor. Verifique se o backend está rodando.",
+        ),
+      );
+    });
+
+    xhr.addEventListener("timeout", () => {
+      reject(
+        new Error(
+          "A operação demorou mais que o esperado. Para documentos grandes, isso pode levar alguns minutos — tente novamente.",
+        ),
+      );
+    });
+
+    xhr.timeout = 600_000;
+    xhr.open("POST", `${API_BASE}/api/v1/upload/document`);
+
+    if (auth["Authorization"]) {
+      xhr.setRequestHeader("Authorization", auth["Authorization"]);
+    }
+
+    xhr.send(formData);
+  });
+}
