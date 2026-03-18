@@ -35,20 +35,25 @@ async def ingest_document(
     db: AsyncSession,
     file_bytes: bytes,
     filename: str,
-    equipment_key: str,
-    doc_type: str,
-    published_date: date,
+    equipment_key: Optional[str] = None,
+    doc_type: Optional[str] = None,
+    published_date: Optional[date] = None,
     display_name: Optional[str] = None,
 ) -> IngestionResult:
     try:
+        effective_date = published_date or date.today()
+
         # Passo 1: Extrair texto
         logger.info(f"[1/6] Extraindo texto: {filename}")
         extraction = extract_text_from_pdf(file_bytes, filename)
         logger.info(f"  → {extraction.total_pages} páginas, {len(extraction.pages)} com texto")
 
-        # Passo 2: Garantir equipamento
-        logger.info(f"[2/6] Verificando equipamento: {equipment_key}")
-        await repository.find_or_create_equipment(db, equipment_key, display_name)
+        # Passo 2: Garantir equipamento (apenas se fornecido)
+        if equipment_key:
+            logger.info(f"[2/6] Verificando equipamento: {equipment_key}")
+            await repository.find_or_create_equipment(db, equipment_key, display_name)
+        else:
+            logger.info("[2/6] Sem equipment_key — pulando criação de equipamento")
 
         # Passo 3: Buscar/criar documento
         logger.info(f"[3/6] Registrando documento: {doc_type} / {equipment_key}")
@@ -66,7 +71,8 @@ async def ingest_document(
 
         # Passo 4: Upload Blob Storage
         logger.info(f"[4/6] Upload para Blob Storage")
-        storage_path = f"{equipment_key}/{published_date.isoformat()}/{filename}"
+        folder = equipment_key or "misc"
+        storage_path = f"{folder}/{effective_date.isoformat()}/{filename}"
         full_path = await upload_pdf(file_bytes, storage_path)
 
         # Passo 5: Criar versão
@@ -74,7 +80,7 @@ async def ingest_document(
         version_id = await repository.create_version(
             db=db,
             document_id=document_id,
-            published_date=published_date,
+            published_date=effective_date,
             source_hash=extraction.source_hash,
             source_filename=filename,
             storage_path=full_path,

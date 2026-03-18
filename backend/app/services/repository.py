@@ -44,13 +44,14 @@ async def find_or_create_equipment(
 
 async def find_or_create_document(
     db: AsyncSession,
-    doc_type: str,
-    equipment_key: str,
+    doc_type: Optional[str],
+    equipment_key: Optional[str],
 ) -> UUID:
     result = await db.execute(
         text("""
             SELECT id FROM documents
-            WHERE doc_type = :doc_type AND equipment_key = :equipment_key
+            WHERE doc_type IS NOT DISTINCT FROM :doc_type
+              AND equipment_key IS NOT DISTINCT FROM :equipment_key
         """),
         {"doc_type": doc_type, "equipment_key": equipment_key},
     )
