@@ -43,8 +43,8 @@ class CitationResponse(BaseModel):
     source_index: int
     source_filename: str
     page_number: int
-    equipment_key: str
-    doc_type: str
+    equipment_key: Optional[str] = None
+    doc_type: Optional[str] = None
     published_date: str
     storage_path: str
     document_version_id: str = ""
