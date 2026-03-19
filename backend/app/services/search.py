@@ -185,6 +185,7 @@ async def text_search(
 
 
 EQUIPMENT_BOOST = 0.10
+DOC_TYPE_BOOST = 0.08
 MIN_SCORE_THRESHOLD = 0.15
 
 
@@ -205,16 +206,13 @@ async def hybrid_search(
     A busca textual usa a query original (pega códigos, números exatos).
 
     Resultados são fundidos por chunk_id com score ponderado.
-    Aplica boost para documentos do equipamento mencionado na query
-    e filtra resultados abaixo do threshold mínimo.
+    doc_type e equipment_key aplicam boost (não filtro hard) — documentos
+    sem metadados ainda são retornados se forem semanticamente relevantes.
     """
-    # Executa ambas as buscas (sem filtro de equipment para não excluir resultados úteis)
-    vector_results = await vector_search(
-        db, query_en, limit=limit, doc_type=doc_type
-    )
-    text_results = await text_search(
-        db, query_original, limit=limit, doc_type=doc_type
-    )
+    # Executa ambas as buscas sem filtros de metadados para não excluir
+    # documentos sem doc_type ou equipment_key definidos
+    vector_results = await vector_search(db, query_en, limit=limit)
+    text_results = await text_search(db, query_original, limit=limit)
 
     logger.info(
         f"Busca híbrida: {len(vector_results)} vetorial + {len(text_results)} textual"
@@ -241,6 +239,12 @@ async def hybrid_search(
         for chunk_id, result in merged.items():
             if result.equipment_key and result.equipment_key == equipment_key:
                 scores[chunk_id] += EQUIPMENT_BOOST
+
+    # Boost para documentos do tipo correto
+    if doc_type:
+        for chunk_id, result in merged.items():
+            if result.doc_type and result.doc_type == doc_type:
+                scores[chunk_id] += DOC_TYPE_BOOST
 
     # Ordena por score combinado
     sorted_ids = sorted(scores, key=lambda k: scores[k], reverse=True)
