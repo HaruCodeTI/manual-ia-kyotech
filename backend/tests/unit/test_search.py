@@ -149,3 +149,42 @@ async def test_hybrid_search_filters_low_scores(mock_db, make_mock_result):
     chunk_ids = [r.chunk_id for r in results]
     assert "good" in chunk_ids
     assert "bad" not in chunk_ids
+
+
+class TestIncludeAllVersions:
+    @pytest.mark.asyncio
+    async def test_vector_search_uses_current_versions_by_default(self, mock_db, make_mock_result):
+        mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+        with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+            await vector_search(mock_db, "query")
+        sql_text = str(mock_db.execute.call_args[0][0].text)
+        assert "current_versions" in sql_text
+        assert "document_versions" not in sql_text.replace("current_versions", "")
+
+    @pytest.mark.asyncio
+    async def test_vector_search_uses_document_versions_when_flag_true(self, mock_db, make_mock_result):
+        mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+        with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+            await vector_search(mock_db, "query", include_all_versions=True)
+        sql_text = str(mock_db.execute.call_args[0][0].text)
+        assert "document_versions" in sql_text
+        assert "current_versions" not in sql_text
+
+    @pytest.mark.asyncio
+    async def test_text_search_uses_document_versions_when_flag_true(self, mock_db, make_mock_result):
+        mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+        await text_search(mock_db, "query", include_all_versions=True)
+        sql_text = str(mock_db.execute.call_args[0][0].text)
+        assert "document_versions" in sql_text
+        assert "current_versions" not in sql_text
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_passes_flag_to_sub_searches(self, mock_db, make_mock_result):
+        mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+        with patch("app.services.search.vector_search", new_callable=AsyncMock, return_value=[]) as mock_v, \
+             patch("app.services.search.text_search", new_callable=AsyncMock, return_value=[]) as mock_t:
+            await hybrid_search(mock_db, "q_en", "q_pt", include_all_versions=True)
+        mock_v.assert_called_once()
+        assert mock_v.call_args.kwargs.get("include_all_versions") is True
+        mock_t.assert_called_once()
+        assert mock_t.call_args.kwargs.get("include_all_versions") is True

@@ -46,6 +46,7 @@ async def vector_search(
     limit: int = 10,
     doc_type: Optional[str] = None,
     equipment_key: Optional[str] = None,
+    include_all_versions: bool = False,
 ) -> List[SearchResult]:
     """
     Busca vetorial com cosine similarity via pgvector.
@@ -69,6 +70,8 @@ async def vector_search(
     if filters:
         where_clause = "AND " + " AND ".join(filters)
 
+    version_source = "document_versions" if include_all_versions else "current_versions"
+
     result = await db.execute(
         text(f"""
             SELECT
@@ -85,7 +88,7 @@ async def vector_search(
                 cv.id AS version_id,
                 c.quality_score
             FROM chunks c
-            JOIN current_versions cv ON c.document_version_id = cv.id
+            JOIN {version_source} cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
             WHERE 1=1
             {where_clause}
@@ -122,6 +125,7 @@ async def text_search(
     limit: int = 5,
     doc_type: Optional[str] = None,
     equipment_key: Optional[str] = None,
+    include_all_versions: bool = False,
 ) -> List[SearchResult]:
     """
     Busca textual usando pg_trgm (trigram similarity).
@@ -142,6 +146,8 @@ async def text_search(
     if filters:
         where_clause = "AND " + " AND ".join(filters)
 
+    version_source = "document_versions" if include_all_versions else "current_versions"
+
     result = await db.execute(
         text(f"""
             SELECT
@@ -158,7 +164,7 @@ async def text_search(
                 cv.id AS version_id,
                 c.quality_score
             FROM chunks c
-            JOIN current_versions cv ON c.document_version_id = cv.id
+            JOIN {version_source} cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
             WHERE similarity(c.content, :query) > 0.05
             {where_clause}
@@ -204,6 +210,7 @@ async def hybrid_search(
     equipment_key: Optional[str] = None,
     vector_weight: float = 0.65,
     text_weight: float = 0.35,
+    include_all_versions: bool = False,
 ) -> List[SearchResult]:
     """
     Busca híbrida: combina vetorial (query em EN) + textual (query original PT).
@@ -217,8 +224,8 @@ async def hybrid_search(
     """
     # Executa ambas as buscas sem filtros de metadados para não excluir
     # documentos sem doc_type ou equipment_key definidos
-    vector_results = await vector_search(db, query_en, limit=limit)
-    text_results = await text_search(db, query_original, limit=limit)
+    vector_results = await vector_search(db, query_en, limit=limit, include_all_versions=include_all_versions)
+    text_results = await text_search(db, query_original, limit=limit, include_all_versions=include_all_versions)
 
     logger.info(
         f"Busca híbrida: {len(vector_results)} vetorial + {len(text_results)} textual"
