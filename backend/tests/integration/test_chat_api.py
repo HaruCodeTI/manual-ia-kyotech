@@ -292,6 +292,7 @@ async def test_clarification_from_weak_score(async_client):
     data = resp.json()
     assert data["needs_clarification"] is True
     assert data["citations"] == []
+    assert "detalhes" in data["answer"].lower()
     # generate_response não deve ter sido chamado
     mock_gen.assert_not_awaited()
 
@@ -299,12 +300,22 @@ async def test_clarification_from_weak_score(async_client):
 @pytest.mark.anyio
 async def test_good_score_proceeds_normally(async_client):
     """Score >= 0.45 → pipeline normal, needs_clarification=False."""
+    from app.services.search import SearchResult
+    from datetime import date as dt
+
+    good_result = SearchResult(
+        chunk_id="c1", content="texto", page_number=1, similarity=0.8,
+        document_id="d1", doc_type="manual", equipment_key="frontier-780",
+        published_date=dt(2024, 1, 1), source_filename="f.pdf",
+        storage_path="container/blob", search_type="vector",
+        document_version_id="v1", quality_score=0.9,
+    )
     session_id = uuid4()
 
     with (
         patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
         patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
-        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[good_result]),
         patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()) as mock_gen,
         patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
