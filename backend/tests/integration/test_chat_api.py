@@ -49,6 +49,7 @@ async def test_ask_creates_new_session(async_client):
     session_id = uuid4()
 
     with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
         patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
         patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
         patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
@@ -74,6 +75,7 @@ async def test_ask_with_existing_session(async_client):
     session_id = uuid4()
 
     with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
         patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
         patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
         patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
@@ -99,6 +101,7 @@ async def test_ask_with_equipment_filter(async_client):
     session_id = uuid4()
 
     with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
         patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
         patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]) as mock_search,
         patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),

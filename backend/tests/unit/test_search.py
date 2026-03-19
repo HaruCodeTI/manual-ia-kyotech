@@ -16,9 +16,9 @@ from app.services.search import SearchResult, vector_search, text_search, hybrid
 def _make_row(chunk_id="c1", content="texto", page=1, similarity=0.9,
               doc_id="d1", doc_type="manual", equip="equip-a",
               pub_date=date(2024, 1, 1), filename="f.pdf",
-              storage="container/blob", version_id="v1"):
+              storage="container/blob", version_id="v1", quality_score=0.0):
     return (chunk_id, content, page, similarity, doc_id, doc_type,
-            equip, pub_date, filename, storage, version_id)
+            equip, pub_date, filename, storage, version_id, quality_score)
 
 
 # ── vector_search ──
