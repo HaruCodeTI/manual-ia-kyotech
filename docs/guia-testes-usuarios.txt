@@ -1,0 +1,315 @@
+================================================================================
+  KYOTECH AI — GUIA DE TESTES PARA USUÁRIOS
+  Cenários e perguntas de exemplo em Português Brasileiro
+  Versão: março/2026
+================================================================================
+
+Este documento reúne exemplos de perguntas e cenários de uso para guiar os
+testes do sistema. O objetivo é cobrir os principais casos de uso que um
+técnico de campo ou especialista técnico encontraria no dia a dia.
+
+COMO USAR ESTE GUIA
+-------------------
+- Acesse o chat e digite as perguntas abaixo como se fosse um técnico real
+- Observe se a resposta cita a fonte (manual ou informativo) e o número da página
+- Clique nas citações [Fonte N] para visualizar o trecho original do documento
+- Teste variações: reformule com suas próprias palavras e veja se o sistema entende
+
+================================================================================
+  EQUIPAMENTOS DISPONÍVEIS NA BASE
+================================================================================
+
+  - Jet Press 750S
+  - Jet Press 750S HS
+  - Revoria Press PC1120
+  - Revoria Press SC200
+  - Apeos C7070
+  - Apeos C5570
+
+================================================================================
+  BLOCO 1 — PERGUNTAS GERAIS (sem especificar equipamento)
+================================================================================
+
+Essas perguntas testam se o sistema consegue identificar o contexto e trazer
+a resposta mais relevante mesmo sem o usuário mencionar o modelo exato.
+
+  1. "Como realizar a limpeza geral do equipamento?"
+  2. "Qual é o procedimento de desligamento de emergência?"
+  3. "Como verificar o nível de tinta?"
+  4. "Quais são os intervalos de manutenção preventiva recomendados?"
+  5. "Como calibrar as cores do equipamento?"
+  6. "O que fazer quando aparecer uma mensagem de erro na tela?"
+  7. "Quais são os requisitos de ambiente para instalação do equipamento?"
+  8. "Como exportar um relatório de contadores?"
+  9. "Como limpar os cabeçotes de impressão?"
+ 10. "Quais consumíveis precisam ser trocados periodicamente?"
+
+================================================================================
+  BLOCO 2 — JET PRESS 750S
+================================================================================
+
+---- Manutenção e Procedimentos ----
+
+ 11. "Qual é o procedimento de manutenção diária da Jet Press 750S?"
+ 12. "Como fazer a troca do filtro de ar na 750S?"
+ 13. "Como ajustar a tensão do papel na Jet Press 750S?"
+ 14. "Quais são os passos para fazer a limpeza do módulo de secagem?"
+ 15. "Como realizar o alinhamento de cabeça de impressão na 750S?"
+ 16. "Qual é o procedimento de substituição da unidade de impressão?"
+ 17. "Como verificar e limpar os sensores de papel na Jet Press 750S?"
+ 18. "Quais são as especificações de papel compatíveis com a Jet Press 750S?"
+ 19. "Como configurar um novo perfil de mídia na 750S?"
+ 20. "Qual o torque correto para aperto dos parafusos de fixação da cabeça?"
+
+---- Resolução de Problemas ----
+
+ 21. "A Jet Press 750S está apresentando listras verticais na impressão, como resolver?"
+ 22. "O papel está enrugando na saída, o que pode ser?"
+ 23. "A máquina está exibindo uma mensagem de erro de comunicação, o que fazer?"
+ 24. "Como resolver problemas de registro entre frente e verso?"
+ 25. "A tinta não está aderindo ao papel, quais são as possíveis causas?"
+ 26. "A máquina parou no meio de um trabalho, como retomar sem perder o job?"
+ 27. "Há manchas de tinta nas bordas do papel, como corrigir?"
+ 28. "O sistema está demorando muito para processar os arquivos, como otimizar?"
+
+---- Variações de como perguntar ----
+
+ 29. "750S listras na impressão" (pesquisa curta, como um técnico digitaria rápido)
+ 30. "jet press 750 erro alinhamento cabeça"
+ 31. "como trocar filtro 750S"
+ 32. "Estou com a Jet Press 750S apresentando falha no módulo de tinta cyan, tem algum informativo sobre isso?"
+
+================================================================================
+  BLOCO 3 — JET PRESS 750S HS (High Speed)
+================================================================================
+
+ 33. "Qual é a diferença de manutenção entre a 750S e a 750S HS?"
+ 34. "Como configurar o modo de alta velocidade na Jet Press 750S HS?"
+ 35. "Quais são os cuidados adicionais com os cabeçotes na versão HS?"
+ 36. "A 750S HS apresenta aquecimento excessivo, como diagnosticar?"
+ 37. "Qual é a velocidade máxima de impressão certificada da 750S HS?"
+ 38. "Existe algum informativo de atualização para a 750S HS?"
+ 39. "Como verificar se o firmware da 750SHS está atualizado?"
+ 40. "Quais são as especificações elétricas da Jet Press 750S HS?"
+
+================================================================================
+  BLOCO 4 — REVORIA PRESS PC1120
+================================================================================
+
+---- Operação e Configuração ----
+
+ 41. "Como configurar a Revoria Press PC1120 para impressão de alta qualidade?"
+ 42. "Qual é o procedimento de ligamento inicial da Revoria PC1120?"
+ 43. "Como adicionar uma bandeja de papel na Revoria PC1120?"
+ 44. "Como configurar o perfil de cores ICC na Revoria PC1120?"
+ 45. "Quais são as opções de acabamento disponíveis na PC1120?"
+ 46. "Como fazer a calibração de densidade de toner na Revoria 1120?"
+
+---- Manutenção ----
+
+ 47. "Qual é o ciclo de troca do kit de manutenção da Revoria PC1120?"
+ 48. "Como limpar o cilindro fotorreceptor da Revoria PC1120?"
+ 49. "Quais são os passos para trocar o fusor da PC1120?"
+ 50. "Como verificar e substituir a correia de transferência?"
+ 51. "Qual é o procedimento de limpeza do conjunto de fixação?"
+ 52. "Como resetar os contadores de manutenção após uma troca de peça?"
+
+---- Resolução de Problemas ----
+
+ 53. "A Revoria PC1120 está apresentando imagem fantasma, como resolver?"
+ 54. "Há toner espalhado na folha, quais são as possíveis causas?"
+ 55. "A máquina está amassando o papel na passagem pelo fusor, o que fazer?"
+ 56. "Erro de jam frequente na bandeja 2 da Revoria PC1120, como diagnosticar?"
+ 57. "A impressão está com baixa densidade, como ajustar?"
+ 58. "Como resolver erro de fusão na Revoria PC1120?"
+
+================================================================================
+  BLOCO 5 — REVORIA PRESS SC200
+================================================================================
+
+ 59. "Qual é o procedimento de instalação do toner na Revoria SC200?"
+ 60. "Como configurar a Revoria SC200 para mídia especial (papel couché, cartão)?"
+ 61. "Quais são as especificações máximas de gramatura para a SC200?"
+ 62. "Como realizar a verificação de qualidade de impressão na SC200?"
+ 63. "A Revoria SC200 está fazendo barulho incomum durante a impressão, o que pode ser?"
+ 64. "Como exportar os logs de erro da Revoria SC200?"
+ 65. "Existe algum boletim técnico recente para a Revoria SC200?"
+ 66. "Como configurar o perfil de cor especial na SC200?"
+
+================================================================================
+  BLOCO 6 — APEOS C7070
+================================================================================
+
+ 67. "Como configurar a digitalização para pasta de rede na Apeos C7070?"
+ 68. "Qual é o procedimento de troca do cartucho de toner da Apeos C7070?"
+ 69. "Como limpar o vidro do scanner da Apeos C7070?"
+ 70. "A Apeos C7070 não está conectando na rede, como diagnosticar?"
+ 71. "Como configurar autenticação de usuário na Apeos C7070?"
+ 72. "Quais são as opções de acabamento compatíveis com a Apeos C7070?"
+ 73. "Como realizar impressão segura (PIN) na Apeos C7070?"
+ 74. "A cópia está saindo torta, como ajustar o alinhamento da Apeos C7070?"
+ 75. "Como configurar e-mail para envio direto do scanner na C7070?"
+ 76. "Qual é o procedimento de limpeza do rolo de separação da bandeja?"
+
+================================================================================
+  BLOCO 7 — APEOS C5570
+================================================================================
+
+ 77. "Como trocar o cartucho de toner da Apeos C5570?"
+ 78. "Qual é a capacidade máxima de papel das bandejas da Apeos C5570?"
+ 79. "Como configurar a impressão frente e verso automática na C5570?"
+ 80. "A Apeos C5570 está exibindo erro de comunicação USB, como resolver?"
+ 81. "Como redefinir a senha de administrador da Apeos C5570?"
+ 82. "Quais são as especificações de conectividade da Apeos C5570?"
+ 83. "Como configurar o fax na Apeos C5570?"
+ 84. "Há borrões na impressão da Apeos C5570, como corrigir?"
+
+================================================================================
+  BLOCO 8 — INFORMATIVOS E BOLETINS TÉCNICOS
+================================================================================
+
+Essas perguntas testam especificamente a busca em documentos do tipo
+"informativo" (boletins de serviço, atualizações técnicas, alertas).
+
+ 85. "Existe algum boletim técnico sobre a Jet Press 750S?"
+ 86. "Houve algum recall ou alerta de segurança para os equipamentos Fujifilm?"
+ 87. "Qual é o último informativo de atualização de firmware disponível?"
+ 88. "Existe alguma nota técnica sobre problemas conhecidos na Revoria PC1120?"
+ 89. "Foram lançados informativos sobre qualidade de impressão em mídias especiais?"
+ 90. "Existe algum boletim sobre problemas de aderência de tinta na Jet Press?"
+ 91. "Há algum informativo sobre atualização do sistema de gerenciamento de cores?"
+ 92. "Existe nota técnica sobre temperatura ambiente ideal para os equipamentos?"
+
+================================================================================
+  BLOCO 9 — PERGUNTAS TÉCNICAS AVANÇADAS
+================================================================================
+
+Essas perguntas testam a profundidade do sistema para consultas técnicas
+mais específicas, como as que um engenheiro de serviço faria.
+
+ 93. "Quais são os parâmetros de ajuste do módulo de secagem da Jet Press 750S?"
+ 94. "Como interpretar os dados do log de diagnóstico da Revoria PC1120?"
+ 95. "Quais são as tolerâncias de registro aceitáveis para a Jet Press 750S HS?"
+ 96. "Como realizar a medição de densidade ótica (optical density) nos equipamentos?"
+ 97. "Quais são os valores nominais de tensão nos sensores de papel da Apeos C7070?"
+ 98. "Como configurar os parâmetros de perfil de secagem para papel sintético?"
+ 99. "Qual é a sequência de diagnóstico recomendada para falhas de comunicação?"
+100. "Como verificar a integridade mecânica do sistema de transporte de papel?"
+
+================================================================================
+  BLOCO 10 — CENÁRIOS COMPLETOS DE USO
+================================================================================
+
+Esses são exemplos de conversas mais longas, simulando um atendimento real.
+Experimente digitar cada mensagem em sequência na mesma sessão de chat.
+
+CENÁRIO A — Técnico com problema urgente em campo
+--------------------------------------------------
+  Mensagem 1: "Estou em campo com uma Jet Press 750S e ela parou de imprimir.
+               A tela mostra uma mensagem mas não consigo identificar o código.
+               O que devo verificar primeiro?"
+
+  Mensagem 2: "Verifiquei os sensores e um deles parece estar com sujeira.
+               Como faço a limpeza correta?"
+
+  Mensagem 3: "Após limpeza o sensor ainda reporta erro. Preciso substituir.
+               Qual é o procedimento e quais ferramentas são necessárias?"
+
+CENÁRIO B — Planejamento de manutenção preventiva
+--------------------------------------------------
+  Mensagem 1: "Preciso montar um plano de manutenção preventiva mensal
+               para a Revoria PC1120. O que deve ser feito?"
+
+  Mensagem 2: "E para manutenção trimestral, quais itens adicionais?"
+
+  Mensagem 3: "Quais peças de reposição devo manter em estoque para
+               a Revoria PC1120?"
+
+CENÁRIO C — Configuração de novo equipamento
+--------------------------------------------
+  Mensagem 1: "Vou instalar uma Apeos C7070 nova em um cliente.
+               Quais são os requisitos de ambiente e espaço?"
+
+  Mensagem 2: "Como realizar a configuração inicial de rede?"
+
+  Mensagem 3: "Quais são os testes de qualidade que devo fazer antes
+               de entregar o equipamento ao cliente?"
+
+CENÁRIO D — Investigação de problema de qualidade
+--------------------------------------------------
+  Mensagem 1: "A impressão da Jet Press 750S está com variação de cor
+               ao longo do job. O início do trabalho fica bem mas o
+               final fica mais escuro. O que pode causar isso?"
+
+  Mensagem 2: "Como posso diagnosticar se o problema é no sistema de
+               tinta ou no sistema de secagem?"
+
+  Mensagem 3: "Existe algum informativo sobre esse tipo de problema
+               na 750S ou na 750S HS?"
+
+================================================================================
+  BLOCO 11 — TESTES DE COMPORTAMENTO DO SISTEMA
+================================================================================
+
+Esses exemplos testam casos-limite para verificar como o sistema responde
+quando não há informação suficiente ou a pergunta é ambígua.
+
+TESTE DE EQUIPAMENTO NÃO ESPECIFICADO:
+101. "Como trocar o fusor?" (sem mencionar o equipamento)
+     → Esperado: sistema pede para especificar o equipamento OU responde
+       com informações genéricas se tiver documentação aplicável a todos.
+
+TESTE DE INFORMAÇÃO INEXISTENTE:
+102. "Qual é o número de série desse equipamento?"
+     → Esperado: sistema informa que não tem essa informação no manual.
+
+TESTE DE PERGUNTA FORA DO ESCOPO:
+103. "Qual é o preço de venda da Jet Press 750S?"
+     → Esperado: sistema informa que não tem informações comerciais.
+
+TESTE DE PERGUNTA AMBÍGUA:
+104. "Como resolver o erro 23?"
+     → Esperado: sistema pede mais contexto (qual equipamento?) ou retorna
+       informações do código de erro mais relevante encontrado na base.
+
+TESTE DE SINÔNIMO / ABREVIAÇÃO:
+105. "Problema no JP750S" (usando abreviação)
+     → Esperado: sistema reconhece JP750S como Jet Press 750S.
+
+106. "Erro na 1120" (usando somente número do modelo)
+     → Esperado: sistema identifica como Revoria PC1120.
+
+TESTE DE PERGUNTA EM INGLÊS:
+107. "How to clean the print head on Jet Press 750S?"
+     → Esperado: sistema responde em português com as informações do manual.
+
+================================================================================
+  DICAS PARA UM BOM TESTE
+================================================================================
+
+  ✓ Teste tanto perguntas curtas quanto perguntas detalhadas
+  ✓ Verifique sempre se as citações [Fonte N] aparecem nas respostas
+  ✓ Clique nas fontes para confirmar que o trecho citado é relevante
+  ✓ Tente reformular a mesma pergunta de forma diferente
+  ✓ Inicie conversas novas para testar sem contexto anterior
+  ✓ Experimente mencionar o equipamento de formas diferentes
+    (ex: "Jet Press 750S", "JP750S", "750S", "a 750")
+  ✓ Teste perguntas com terminologia técnica e também com linguagem simples
+  ✓ Registre qualquer resposta incorreta ou incompleta para feedback
+
+================================================================================
+  FEEDBACK E SUPORTE
+================================================================================
+
+  Para reportar problemas, respostas incorretas ou sugestões de melhoria,
+  entre em contato com a equipe responsável pela implantação do sistema.
+
+  Inclua no feedback:
+  - A pergunta que você digitou
+  - A resposta recebida
+  - O que você esperava como resposta
+  - O equipamento em questão (se aplicável)
+
+================================================================================
+  FIM DO DOCUMENTO
+================================================================================
