@@ -18,6 +18,7 @@ from app.services.search import hybrid_search
 from app.services.generator import generate_response, Citation
 from app.services.storage import generate_signed_url
 from app.services import chat_repository
+from app.services.semantic_cache import get_cached_response
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class ChatResponse(BaseModel):
     total_sources: int
     model_used: str
     session_id: str
+    message_id: str
 
 
 @router.post("/ask", response_model=ChatResponse)
@@ -78,6 +80,34 @@ async def ask_question(
 
     # Persistir mensagem do usuário
     await chat_repository.add_message(db, session_id, "user", question)
+
+    # Verificar semantic cache (respostas aprovadas anteriormente)
+    cached = await get_cached_response(db, question)
+    if cached:
+        logger.info(f"[{user.id}] Cache HIT — retornando resposta cacheada")
+        # Persistir mensagem do assistente (cacheada)
+        cached_metadata = {
+            "query_rewritten": cached["query_rewritten"],
+            "total_sources": len(cached["citations"]),
+            "model_used": cached["model_used"],
+        }
+        assistant_msg_id = await chat_repository.add_message(
+            db, session_id, "assistant", cached["answer"],
+            citations=cached["citations"], metadata=cached_metadata,
+        )
+        cached_citations = [
+            CitationResponse(**c) for c in cached["citations"]
+        ] if cached["citations"] else []
+        return ChatResponse(
+            answer=cached["answer"],
+            citations=cached_citations,
+            query_original=question,
+            query_rewritten=cached["query_rewritten"],
+            total_sources=len(cached_citations),
+            model_used=cached["model_used"],
+            session_id=str(session_id),
+            message_id=str(assistant_msg_id),
+        )
 
     # RAG pipeline
     rewritten = await rewrite_query(question)
@@ -125,7 +155,7 @@ async def ask_question(
         "total_sources": rag_response.total_sources,
         "model_used": rag_response.model_used,
     }
-    await chat_repository.add_message(
+    assistant_msg_id = await chat_repository.add_message(
         db, session_id, "assistant", rag_response.answer,
         citations=citations_json, metadata=metadata_json,
     )
@@ -138,6 +168,7 @@ async def ask_question(
         total_sources=rag_response.total_sources,
         model_used=rag_response.model_used,
         session_id=str(session_id),
+        message_id=str(assistant_msg_id),
     )
 
 
