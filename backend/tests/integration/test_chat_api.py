@@ -252,7 +252,7 @@ async def test_clarification_from_weak_score(async_client):
         chunk_id="c1", content="texto", page_number=1, similarity=0.2,
         document_id="d1", doc_type="manual", equipment_key="equip-a",
         published_date=dt(2024, 1, 1), source_filename="f.pdf",
-        search_type="vector",
+        search_type="vector", storage_path="container/blob",
         document_version_id="v1", quality_score=0.0,
     )
     session_id = uuid4()
@@ -290,7 +290,7 @@ async def test_good_score_proceeds_normally(async_client):
         chunk_id="c1", content="texto", page_number=1, similarity=0.8,
         document_id="d1", doc_type="manual", equipment_key="frontier-780",
         published_date=dt(2024, 1, 1), source_filename="f.pdf",
-        search_type="vector",
+        search_type="vector", storage_path="container/blob",
         document_version_id="v1", quality_score=0.9,
     )
     session_id = uuid4()

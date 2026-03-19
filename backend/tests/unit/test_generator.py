@@ -21,9 +21,9 @@ def _make_result(**overrides) -> SearchResult:
         equipment_key="frontier-780",
         published_date=date(2024, 1, 15),
         source_filename="manual.pdf",
-        storage_path="docs/manual.pdf",
         search_type="vector",
         document_version_id="v1",
+        storage_path="docs/manual.pdf",
     )
     defaults.update(overrides)
     return SearchResult(**defaults)

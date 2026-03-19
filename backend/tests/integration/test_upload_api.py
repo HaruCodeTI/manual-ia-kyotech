@@ -179,7 +179,7 @@ async def test_upload_rejects_oversized_file(async_client):
     with patch.object(upload_module.settings, "max_upload_size_mb", 0):
         resp = await async_client.post(
             "/api/v1/upload/document",
-            files={"file": ("grande.pdf", b"PDF content", "application/pdf")},
+            files={"file": ("grande.pdf", b"%PDF-1.4 content", "application/pdf")},
             data={},
         )
 
