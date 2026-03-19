@@ -205,13 +205,10 @@ async def generate_response(
     if history_messages:
         messages.extend(history_messages)
 
-    messages.append({
-        "role": "user",
-        "content": (
-            f"Pergunta do técnico: {question}\n\n"
-            f"Trechos encontrados:\n\n{context}"
-        ),
-    })
+    user_content = f"Pergunta do técnico: {question}\n\nTrechos encontrados:\n\n{context}"
+    if version_diff and version_diff.has_changes and not is_comparison_query:
+        user_content += "\n\nNota: Foram detectadas diferenças entre versões do documento acima. Integre essas informações na resposta com citações [Fonte N]."
+    messages.append({"role": "user", "content": user_content})
 
     client = get_openai_client()
     response = await client.chat.completions.create(

@@ -365,5 +365,57 @@ class TestVersionDiffInGenerator:
         )
         assert resp.answer is not None
         call_args = _patch_openai_client.chat.completions.create.call_args
-        user_msg = call_args.kwargs["messages"][1]["content"]  # index 0 = system, index 1 = user
+        user_msg = call_args.kwargs["messages"][-1]["content"]
         assert "DIFERENÇAS DETECTADAS" not in user_msg
+
+    @pytest.mark.asyncio
+    async def test_implicit_diff_injects_note_in_user_message(self, _patch_openai_client):
+        """is_comparison_query=False mas has_changes=True → diff injetado + nota no user message."""
+        from app.services.version_comparator import DiffItem, VersionDiff
+        diff = VersionDiff(
+            version_old="2024-07-01",
+            version_new="2025-01-15",
+            diff_items=[DiffItem("modified", "Torque", "10 Nm", "12 Nm")],
+            has_changes=True,
+        )
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("O torque foi atualizado [Fonte 1]")
+        )
+        resp = await generate_response(
+            question="Fale sobre o torque",
+            query_rewritten="About torque",
+            search_results=[_make_result()],
+            version_diff=diff,
+            is_comparison_query=False,
+        )
+        assert resp.answer is not None
+        call_args = _patch_openai_client.chat.completions.create.call_args
+        user_msg = call_args.kwargs["messages"][-1]["content"]
+        assert "DIFERENÇAS DETECTADAS" in user_msg
+        assert "Integre essas informações" in user_msg
+        # Sistema normal usado (não COMPARISON_SYSTEM_PROMPT)
+        system_msg = call_args.kwargs["messages"][0]["content"]
+        assert "Diferenças entre versões" not in system_msg
+
+    @pytest.mark.asyncio
+    async def test_comparison_query_uses_2500_tokens(self, _patch_openai_client):
+        """is_comparison_query=True → max_tokens=2500."""
+        from app.services.version_comparator import DiffItem, VersionDiff
+        diff = VersionDiff(
+            version_old="2024-07-01",
+            version_new="2025-01-15",
+            diff_items=[DiffItem("modified", "Torque", "10 Nm", "12 Nm")],
+            has_changes=True,
+        )
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("resposta [Fonte 1]")
+        )
+        await generate_response(
+            question="O que mudou?",
+            query_rewritten="What changed?",
+            search_results=[_make_result()],
+            version_diff=diff,
+            is_comparison_query=True,
+        )
+        call_kwargs = _patch_openai_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["max_tokens"] == 2500
