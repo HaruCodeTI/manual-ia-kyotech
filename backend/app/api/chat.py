@@ -347,6 +347,7 @@ async def ask_question(
         "query_rewritten": rag_response.query_rewritten,
         "total_sources": rag_response.total_sources,
         "model_used": rag_response.model_used,
+        "diagnostic_mode": diagnostic_mode,
     }
     assistant_msg_id = await chat_repository.add_message(
         db, session_id, "assistant", rag_response.answer,
