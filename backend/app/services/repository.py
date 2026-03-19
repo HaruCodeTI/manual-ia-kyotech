@@ -47,18 +47,21 @@ async def find_or_create_document(
     doc_type: Optional[str],
     equipment_key: Optional[str],
 ) -> UUID:
-    result = await db.execute(
-        text("""
-            SELECT id FROM documents
-            WHERE doc_type IS NOT DISTINCT FROM :doc_type
-              AND equipment_key IS NOT DISTINCT FROM :equipment_key
-        """),
-        {"doc_type": doc_type, "equipment_key": equipment_key},
-    )
-    row = result.fetchone()
-
-    if row:
-        return row[0]
+    # Quando ambos os metadados são nulos, cada upload cria um documento
+    # independente para evitar que arquivos distintos compartilhem o mesmo
+    # version_id e sobrescrevam chunks uns dos outros.
+    if doc_type is not None or equipment_key is not None:
+        result = await db.execute(
+            text("""
+                SELECT id FROM documents
+                WHERE doc_type IS NOT DISTINCT FROM :doc_type
+                  AND equipment_key IS NOT DISTINCT FROM :equipment_key
+            """),
+            {"doc_type": doc_type, "equipment_key": equipment_key},
+        )
+        row = result.fetchone()
+        if row:
+            return row[0]
 
     result = await db.execute(
         text("""
