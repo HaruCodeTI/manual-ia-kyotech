@@ -150,5 +150,5 @@ async def compare_versions(
         version_old=version_old,
         version_new=version_new,
         diff_items=diff_items,
-        has_changes=parsed.get("has_changes", len(diff_items) > 0),
+        has_changes=parsed["has_changes"],
     )
