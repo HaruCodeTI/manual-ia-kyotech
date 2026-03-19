@@ -64,6 +64,28 @@ FORMATO OBRIGATÓRIO DA RESPOSTA:
 
 NÃO liste as fontes ao final — o sistema exibe as fontes automaticamente."""
 
+COMPARISON_SYSTEM_PROMPT = """Você é o assistente técnico da Kyotech, especializado em equipamentos de endoscopia Fujifilm.
+O técnico quer entender o que mudou entre versões de um documento técnico.
+
+PERSONALIDADE:
+- Tom profissional mas acolhedor — trate o técnico como um colega
+- Seja direto e estruturado — comparações precisam de clareza
+
+REGRAS OBRIGATÓRIAS:
+1. Responda SEMPRE em português brasileiro
+2. Use APENAS as informações dos trechos e do diff fornecidos — NUNCA invente
+3. Para cada afirmação, cite a fonte usando EXATAMENTE o formato [Fonte N]
+4. Se não houver diferenças relevantes, diga isso claramente
+
+FORMATO OBRIGATÓRIO DA RESPOSTA:
+## Diferenças entre versões ({version_old} → {version_new})
+[Liste cada mudança identificada com citações [Fonte N]]
+
+## Resumo
+[1-2 frases resumindo o impacto das mudanças para o técnico]
+
+NÃO liste as fontes ao final — o sistema exibe as fontes automaticamente."""
+
 
 def build_context(results: List[SearchResult]) -> str:
     """Constrói o contexto dos trechos para o prompt."""
@@ -90,6 +112,21 @@ def build_clarification_from_weak_results(question: str) -> str:
         "Poderia fornecer mais detalhes? Por exemplo: qual equipamento, "
         "código de erro exibido, ou em qual etapa do processo ocorre o problema?"
     )
+
+
+def build_diff_context(version_diff) -> str:
+    """Formata o VersionDiff como texto para injetar no contexto do LLM."""
+    if not version_diff or not version_diff.has_changes:
+        return ""
+    lines = [f"DIFERENÇAS DETECTADAS ({version_diff.version_old} → {version_diff.version_new}):"]
+    for item in version_diff.diff_items:
+        if item.change_type == "modified":
+            lines.append(f"- MODIFICADO — {item.topic}: era '{item.old_value}', agora é '{item.new_value}'")
+        elif item.change_type == "added":
+            lines.append(f"- ADICIONADO — {item.topic}: '{item.new_value}'")
+        elif item.change_type == "removed":
+            lines.append(f"- REMOVIDO — {item.topic}: era '{item.old_value}'")
+    return "\n".join(lines)
 
 
 @dataclass
@@ -121,6 +158,8 @@ async def generate_response(
     history_messages: Optional[List[Dict[str, str]]] = None,
     history_summary: Optional[str] = None,
     diagnostic_mode: bool = False,
+    version_diff=None,           # Optional[VersionDiff] — sem import explícito para evitar circular
+    is_comparison_query: bool = False,
 ) -> RAGResponse:
     """
     Gera resposta em português com citações baseadas nos resultados da busca.
@@ -140,8 +179,21 @@ async def generate_response(
 
     context = build_context(search_results)
 
-    system_prompt = DIAGNOSTIC_SYSTEM_PROMPT if diagnostic_mode else SYSTEM_PROMPT
-    max_tokens = 2500 if diagnostic_mode else 1500
+    if version_diff and version_diff.has_changes:
+        diff_text = build_diff_context(version_diff)
+        context = f"{diff_text}\n\n{context}"
+
+    if is_comparison_query and version_diff and version_diff.has_changes:
+        system_prompt = COMPARISON_SYSTEM_PROMPT.format(
+            version_old=version_diff.version_old,
+            version_new=version_diff.version_new,
+        )
+    elif diagnostic_mode:
+        system_prompt = DIAGNOSTIC_SYSTEM_PROMPT
+    else:
+        system_prompt = SYSTEM_PROMPT
+
+    max_tokens = 2500 if (is_comparison_query or diagnostic_mode) else 1500
     messages: List[Dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
     if history_summary:

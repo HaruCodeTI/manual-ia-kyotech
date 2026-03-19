@@ -299,3 +299,71 @@ class TestDiagnosticMode:
         call_kwargs = _patch_openai_client.chat.completions.create.call_args.kwargs
         system_content = call_kwargs["messages"][0]["content"]
         assert "Análise dos Sintomas" not in system_content
+
+
+class TestVersionDiffInGenerator:
+    @pytest.mark.asyncio
+    async def test_no_diff_uses_default_prompt(self, _patch_openai_client):
+        """Sem version_diff: comportamento atual preservado."""
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("resposta normal [Fonte 1]")
+        )
+        resp = await generate_response(
+            question="Como trocar o rolo?",
+            query_rewritten="How to replace roller",
+            search_results=[_make_result()],
+            version_diff=None,
+            is_comparison_query=False,
+        )
+        assert resp.answer is not None
+        call_args = _patch_openai_client.chat.completions.create.call_args
+        system_msg = call_args.kwargs["messages"][0]["content"]
+        assert "Diferenças entre versões" not in system_msg
+
+    @pytest.mark.asyncio
+    async def test_with_diff_explicit_query_uses_comparison_prompt(self, _patch_openai_client):
+        from app.services.version_comparator import DiffItem, VersionDiff
+        diff = VersionDiff(
+            version_old="2024-07-01",
+            version_new="2025-01-15",
+            diff_items=[DiffItem("modified", "Torque", "10 Nm", "12 Nm")],
+            has_changes=True,
+        )
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("O torque foi modificado [Fonte 1]")
+        )
+        resp = await generate_response(
+            question="O que mudou?",
+            query_rewritten="What changed?",
+            search_results=[_make_result()],
+            version_diff=diff,
+            is_comparison_query=True,
+        )
+        assert resp.answer is not None
+        call_args = _patch_openai_client.chat.completions.create.call_args
+        system_msg = call_args.kwargs["messages"][0]["content"]
+        assert "omparaç" in system_msg or "Diferenças" in system_msg
+
+    @pytest.mark.asyncio
+    async def test_no_changes_diff_ignores_diff(self, _patch_openai_client):
+        from app.services.version_comparator import VersionDiff
+        diff = VersionDiff(
+            version_old="2024-07-01",
+            version_new="2025-01-15",
+            diff_items=[],
+            has_changes=False,
+        )
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("documentos idênticos [Fonte 1]")
+        )
+        resp = await generate_response(
+            question="O que mudou?",
+            query_rewritten="What changed?",
+            search_results=[_make_result()],
+            version_diff=diff,
+            is_comparison_query=True,
+        )
+        assert resp.answer is not None
+        call_args = _patch_openai_client.chat.completions.create.call_args
+        user_msg = call_args.kwargs["messages"][1]["content"]  # index 0 = system, index 1 = user
+        assert "DIFERENÇAS DETECTADAS" not in user_msg
