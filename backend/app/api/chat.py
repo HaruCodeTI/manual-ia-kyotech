@@ -96,7 +96,17 @@ async def ask_question(
             citations=cached["citations"], metadata=cached_metadata,
         )
         cached_citations = [
-            CitationResponse(**c) for c in cached["citations"]
+            CitationResponse(
+                source_index=c.get("source_index", 0),
+                source_filename=c.get("source_filename", ""),
+                page_number=c.get("page_number", 0),
+                equipment_key=c.get("equipment_key"),
+                doc_type=c.get("doc_type"),
+                published_date=c.get("published_date", ""),
+                storage_path=c.get("storage_path", ""),
+                document_version_id=c.get("document_version_id", ""),
+            )
+            for c in cached["citations"]
         ] if cached["citations"] else []
         return ChatResponse(
             answer=cached["answer"],
