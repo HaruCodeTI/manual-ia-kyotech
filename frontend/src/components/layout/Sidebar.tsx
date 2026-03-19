@@ -68,6 +68,13 @@ export function Sidebar({
       .finally(() => setLoadingSessions(false));
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Rebusca a lista quando uma nova sessão é criada (não existe ainda na lista local)
+  useEffect(() => {
+    if (!activeSessionId) return;
+    if (sessions.some((s) => s.id === activeSessionId)) return;
+    getSessions().then(setSessions).catch(() => {});
+  }, [activeSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();
     try {
