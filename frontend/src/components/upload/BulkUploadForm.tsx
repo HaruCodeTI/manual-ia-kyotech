@@ -1,10 +1,11 @@
 // frontend/src/components/upload/BulkUploadForm.tsx
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { uploadDocumentWithProgress } from "@/lib/api";
 import { FileProgressItem } from "./FileProgressItem";
 import type { FileUploadState, FileStatus } from "./FileProgressItem";
+import type { UploadResponse } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,9 +19,57 @@ import {
 import { Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const SESSION_KEY = 'kyotech_bulk_upload';
+
 const MAX_FILES = 10;
 const MAX_FILE_SIZE_MB = 200;
 const MAX_CONCURRENT = 3;
+
+interface PersistedFileState {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  status: FileStatus;
+  progress: number;
+  result?: UploadResponse;
+  error?: string;
+}
+
+function saveToSession(files: FileUploadState[]): void {
+  const serializable: PersistedFileState[] = files.map((f) => ({
+    id: f.id,
+    fileName: f.file.name,
+    fileSize: f.file.size,
+    status: f.status,
+    progress: f.progress,
+    result: f.result,
+    error: f.error,
+  }));
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(serializable));
+}
+
+function loadFromSession(): FileUploadState[] | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const persisted: PersistedFileState[] = JSON.parse(raw);
+    return persisted.map((p) => ({
+      id: p.id,
+      file: new File([], p.fileName, { type: 'application/pdf' }) as File,
+      // File vazio — só para exibição. Não pode ser reenviado.
+      status: (p.status === 'enviando' || p.status === 'processando' || p.status === 'pendente')
+        ? 'erro'
+        : p.status,
+      progress: p.progress,
+      result: p.result,
+      error: (p.status === 'enviando' || p.status === 'processando' || p.status === 'pendente')
+        ? 'Upload interrompido — reenvie o arquivo'
+        : p.error,
+    }));
+  } catch {
+    return null;
+  }
+}
 
 type Phase = "select" | "uploading" | "done";
 
@@ -44,13 +93,26 @@ function validateFiles(files: File[]): string | null {
 }
 
 export function BulkUploadForm() {
-  const [phase, setPhase] = useState<Phase>("select");
+  const initialFiles = loadFromSession() ?? [];
+  const initialPhase: Phase = initialFiles.length > 0 && initialFiles.every(
+    (f) => f.status === 'concluído' || f.status === 'erro'
+  ) ? 'done' : 'select';
+
+  const [phase, setPhase] = useState<Phase>(initialPhase);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
+  const [fileStates, setFileStates] = useState<FileUploadState[]>(initialFiles);
   const [docType, setDocType] = useState("");
   const [equipmentKey, setEquipmentKey] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (fileStates.length > 0) {
+      saveToSession(fileStates);
+    } else {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  }, [fileStates]);
 
   // Refs para estado mutável que não dispara re-render
   const queueRef = useRef<FileUploadState[]>([]);
@@ -186,6 +248,7 @@ export function BulkUploadForm() {
   }
 
   function handleReset() {
+    sessionStorage.removeItem(SESSION_KEY);
     setPhase("select");
     setSelectedFiles([]);
     setFileStates([]);
