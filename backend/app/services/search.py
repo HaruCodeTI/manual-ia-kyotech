@@ -37,6 +37,7 @@ class SearchResult:
     storage_path: str
     search_type: str  # "vector", "text", or "hybrid"
     document_version_id: str = ""  # ID da versão para o viewer seguro
+    quality_score: float = 0.0
 
 
 async def vector_search(
@@ -81,7 +82,8 @@ async def vector_search(
                 cv.published_date,
                 cv.source_filename,
                 cv.storage_path,
-                cv.id AS version_id
+                cv.id AS version_id,
+                c.quality_score
             FROM chunks c
             JOIN current_versions cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
@@ -107,6 +109,7 @@ async def vector_search(
             source_filename=row[8],
             storage_path=row[9],
             document_version_id=str(row[10]),
+            quality_score=float(row[11] or 0.0),
             search_type="vector",
         )
         for row in rows
@@ -152,7 +155,8 @@ async def text_search(
                 cv.published_date,
                 cv.source_filename,
                 cv.storage_path,
-                cv.id AS version_id
+                cv.id AS version_id,
+                c.quality_score
             FROM chunks c
             JOIN current_versions cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
@@ -178,6 +182,7 @@ async def text_search(
             source_filename=row[8],
             storage_path=row[9],
             document_version_id=str(row[10]),
+            quality_score=float(row[11] or 0.0),
             search_type="text",
         )
         for row in rows
@@ -187,6 +192,7 @@ async def text_search(
 EQUIPMENT_BOOST = 0.10
 DOC_TYPE_BOOST = 0.08
 MIN_SCORE_THRESHOLD = 0.15
+QUALITY_WEIGHT = 0.15
 
 
 async def hybrid_search(
@@ -245,6 +251,12 @@ async def hybrid_search(
         for chunk_id, result in merged.items():
             if result.doc_type and result.doc_type == doc_type:
                 scores[chunk_id] += DOC_TYPE_BOOST
+
+    # Boost por quality_score acumulado via feedback
+    # ATENÇÃO: deve ficar antes de "sorted_ids = sorted(scores, ...)" para afetar o ranking
+    for chunk_id, result in merged.items():
+        if result.quality_score != 0.0:
+            scores[chunk_id] += result.quality_score * QUALITY_WEIGHT
 
     # Ordena por score combinado
     sorted_ids = sorted(scores, key=lambda k: scores[k], reverse=True)
