@@ -6,11 +6,12 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user, require_role
+from app.core.limiter import limiter
 from app.core.config import settings
 from app.core.database import get_db
 from app.services.ingestion import ingest_document, IngestionResult
@@ -37,7 +38,9 @@ class StatsResponse(BaseModel):
 
 
 @router.post("/document", response_model=UploadResponse)
+@limiter.limit("10/minute")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(..., description="Arquivo PDF"),
     equipment_key: Optional[str] = Form(None, description="ID do equipamento (ex: frontier-780)"),
     doc_type: Optional[str] = Form(None, description="Tipo: 'manual' ou 'informativo'"),
@@ -56,6 +59,9 @@ async def upload_document(
 
     if len(file_bytes) == 0:
         raise HTTPException(status_code=400, detail="Arquivo vazio.")
+
+    if not file_bytes.startswith(b"%PDF-"):
+        raise HTTPException(status_code=400, detail="Arquivo inválido: não é um PDF válido")
 
     max_bytes = settings.max_upload_size_mb * 1024 * 1024
     if len(file_bytes) > max_bytes:

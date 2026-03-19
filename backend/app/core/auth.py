@@ -10,6 +10,7 @@ Requer configuração de Session Token no Clerk Dashboard:
 """
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass
 from typing import Optional
@@ -25,14 +26,10 @@ logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-_jwk_client: Optional[PyJWKClient] = None
 
-
-def _get_jwk_client() -> PyJWKClient:
-    global _jwk_client
-    if _jwk_client is None:
-        _jwk_client = PyJWKClient(settings.clerk_jwks_url)
-    return _jwk_client
+@functools.lru_cache(maxsize=1)
+def _get_jwk_client(jwks_url: str) -> PyJWKClient:
+    return PyJWKClient(jwks_url)
 
 
 @dataclass
@@ -52,6 +49,11 @@ async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
 ) -> CurrentUser:
     if not settings.clerk_jwks_url:
+        if settings.environment not in {"development", "test"}:
+            raise HTTPException(
+                status_code=500,
+                detail="CLERK_JWKS_URL não configurado",
+            )
         return CurrentUser(id="dev", role="Admin")
 
     if not credentials:
@@ -62,21 +64,35 @@ async def get_current_user(
 
     token = credentials.credentials
     try:
-        jwk_client = _get_jwk_client()
+        jwk_client = _get_jwk_client(settings.clerk_jwks_url)
         signing_key = jwk_client.get_signing_key_from_jwt(token)
+        decode_options: dict = {}
+        decode_kwargs: dict = {"algorithms": ["RS256"]}
+        if settings.clerk_jwt_audience:
+            decode_options["verify_aud"] = True
+            decode_kwargs["audience"] = settings.clerk_jwt_audience
+        else:
+            decode_options["verify_aud"] = False
+        decode_kwargs["options"] = decode_options
+
         payload = jwt.decode(
             token,
             signing_key.key,
-            algorithms=["RS256"],
-            options={"verify_aud": False},
+            **decode_kwargs,
         )
 
+        user_id = payload.get("sub", "")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token inválido: sub ausente")
+
         user = CurrentUser(
-            id=payload.get("sub", ""),
+            id=user_id,
             role=_extract_role(payload),
         )
         logger.info(f"Usuário autenticado: {user.id} (role={user.role})")
         return user
+    except HTTPException:
+        raise
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expirado.")
     except jwt.InvalidTokenError as e:

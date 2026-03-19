@@ -179,9 +179,66 @@ async def test_upload_rejects_oversized_file(async_client):
     with patch.object(upload_module.settings, "max_upload_size_mb", 0):
         resp = await async_client.post(
             "/api/v1/upload/document",
-            files={"file": ("grande.pdf", b"PDF content", "application/pdf")},
+            files={"file": ("grande.pdf", b"%PDF-1.4 content", "application/pdf")},
             data={},
         )
 
     assert resp.status_code == 400
     assert "excede" in resp.json()["detail"].lower()
+
+
+@pytest.mark.anyio
+async def test_upload_rejects_invalid_pdf_magic_bytes(async_client):
+    """Arquivo sem magic bytes PDF (%PDF-) deve retornar 400."""
+    # Cria um arquivo com extensão .pdf mas sem os magic bytes corretos
+    fake_pdf_content = b"FAKE PDF CONTENT WITHOUT MAGIC BYTES"
+    resp = await async_client.post(
+        "/api/v1/upload/document",
+        files={"file": ("fake.pdf", fake_pdf_content, "application/pdf")},
+        data={},
+    )
+    assert resp.status_code == 400
+    assert "inválido" in resp.json()["detail"].lower()
+
+
+@pytest.mark.anyio
+async def test_upload_rejects_text_file_as_pdf(async_client):
+    """Arquivo de texto com extensão .pdf deve retornar 400 (magic bytes inválidos)."""
+    text_content = b"This is just plain text, not a PDF"
+    resp = await async_client.post(
+        "/api/v1/upload/document",
+        files={"file": ("notapdf.pdf", text_content, "application/pdf")},
+        data={},
+    )
+    assert resp.status_code == 400
+    # Falha na validação de magic bytes
+    assert "pdf" in resp.json()["detail"].lower()
+
+
+@pytest.mark.anyio
+async def test_upload_accepts_valid_pdf_magic_bytes(async_client, sample_pdf_bytes):
+    """Arquivo com magic bytes PDF válidos deve ser processado normalmente."""
+    from app.services.ingestion import IngestionResult
+
+    mock_result = IngestionResult(
+        success=True,
+        message="Documento ingerido com sucesso.",
+        document_id="doc-123",
+        version_id="ver-456",
+        total_pages=2,
+        total_chunks=10,
+        was_duplicate=False,
+    )
+
+    with patch("app.api.upload.ingest_document", new_callable=AsyncMock, return_value=mock_result):
+        resp = await async_client.post(
+            "/api/v1/upload/document",
+            files={"file": ("valid.pdf", sample_pdf_bytes, "application/pdf")},
+            data={
+                "equipment_key": "frontier-780",
+                "doc_type": "manual",
+            },
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["success"] is True

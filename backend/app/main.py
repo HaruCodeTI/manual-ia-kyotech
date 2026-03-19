@@ -10,7 +10,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.upload import router as upload_router
 from app.api.chat import router as chat_router
@@ -18,6 +21,8 @@ from app.api.sessions import router as sessions_router
 from app.api.viewer import router as viewer_router
 from app.api.feedback import router as feedback_router
 from app.core.database import engine
+from app.core.config import settings
+from app.core.limiter import limiter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,6 +73,9 @@ app = FastAPI(
     redoc_url=None,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -81,9 +89,23 @@ app.add_middleware(
         "https://kyotech-ai.harucode.com.br",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+        if not response.headers.get("Strict-Transport-Security"):
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(upload_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
@@ -97,9 +119,10 @@ async def health_check():
     return {"status": "ok", "service": "kyotech-ai"}
 
 
-@app.get("/docs", include_in_schema=False)
-async def scalar_docs():
-    return get_scalar_api_reference(
-        openapi_url=app.openapi_url,
-        title="Kyotech AI — API Docs",
-    )
+if settings.environment in {"development", "test"}:
+    @app.get("/docs", include_in_schema=False)
+    async def scalar_docs():
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url,
+            title="Kyotech AI — API Docs",
+        )
