@@ -1,4 +1,4 @@
-import type { ChatResponse, UploadResponse, StatsResponse, ChatSession } from "@/types";
+import type { ChatResponse, UploadResponse, StatsResponse, ChatSession, FeedbackRating } from "@/types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -316,4 +316,26 @@ export async function uploadDocumentWithProgress(
 
     xhr.send(formData);
   });
+}
+
+export async function submitFeedback(
+  messageId: string,
+  rating: FeedbackRating,
+): Promise<void> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/chat/feedback`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...auth },
+        body: JSON.stringify({ message_id: messageId, rating }),
+      },
+      10_000,
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
 }

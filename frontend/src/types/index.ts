@@ -17,6 +17,7 @@ export interface ChatResponse {
   total_sources: number;
   model_used: string;
   session_id: string;
+  message_id: string;
 }
 
 export interface ChatRequest {
@@ -44,6 +45,7 @@ export interface StatsResponse {
 
 export interface Message {
   id: string;
+  message_id?: string;
   role: "user" | "assistant";
   content: string;
   citations?: Citation[];
@@ -70,3 +72,6 @@ export interface ChatSessionDetail {
     created_at: string;
   }[];
 }
+
+// Tipo para o rating de feedback
+export type FeedbackRating = "thumbs_up" | "thumbs_down";
