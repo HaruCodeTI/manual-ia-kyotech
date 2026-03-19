@@ -14,7 +14,7 @@ from sqlalchemy import text
 
 from app.core.auth import CurrentUser, get_current_user
 from app.core.database import get_db
-from app.services.feedback_repository import record_feedback, get_feedback
+from app.services.feedback_repository import record_feedback
 from app.services.semantic_cache import cache_response
 
 logger = logging.getLogger(__name__)
