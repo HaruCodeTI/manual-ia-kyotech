@@ -3,6 +3,8 @@ Kyotech AI — Configurações centralizadas
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
@@ -22,6 +24,9 @@ class Settings(BaseSettings):
     azure_storage_container_processed: str = "pdfs-processados"
 
     clerk_jwks_url: str = ""
+    clerk_jwt_audience: Optional[str] = None
+
+    environment: str = "development"
 
     chunk_size: int = 800
     chunk_overlap: int = 200

@@ -52,6 +52,11 @@ async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
 ) -> CurrentUser:
     if not settings.clerk_jwks_url:
+        if settings.environment == "production":
+            raise HTTPException(
+                status_code=500,
+                detail="CLERK_JWKS_URL não configurado em produção",
+            )
         return CurrentUser(id="dev", role="Admin")
 
     if not credentials:
@@ -64,11 +69,19 @@ async def get_current_user(
     try:
         jwk_client = _get_jwk_client()
         signing_key = jwk_client.get_signing_key_from_jwt(token)
+        decode_options: dict = {}
+        decode_kwargs: dict = {"algorithms": ["RS256"]}
+        if settings.clerk_jwt_audience:
+            decode_options["verify_aud"] = True
+            decode_kwargs["audience"] = settings.clerk_jwt_audience
+        else:
+            decode_options["verify_aud"] = False
+        decode_kwargs["options"] = decode_options
+
         payload = jwt.decode(
             token,
             signing_key.key,
-            algorithms=["RS256"],
-            options={"verify_aud": False},
+            **decode_kwargs,
         )
 
         user = CurrentUser(
