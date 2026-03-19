@@ -221,3 +221,81 @@ def test_build_clarification_from_weak_results():
     assert len(result) > 0
     # Deve ser em português
     assert any(word in result.lower() for word in ["encontrei", "detalhes", "equipamento", "precisas"])
+
+
+def _make_llm_response(content: str):
+    """Helper para mockar resposta do LLM em test_generator.py."""
+    choice = MagicMock()
+    choice.message.content = content
+    resp = MagicMock()
+    resp.choices = [choice]
+    return resp
+
+
+@pytest.fixture
+def _patch_openai_client():
+    mock_client = AsyncMock()
+    with patch("app.services.generator.get_openai_client", return_value=mock_client):
+        yield mock_client
+
+
+class TestDiagnosticMode:
+    @pytest.mark.asyncio
+    async def test_diagnostic_mode_uses_diagnostic_prompt(self, _patch_openai_client):
+        """diagnostic_mode=True → system message contém 'Análise dos Sintomas'."""
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("## Análise dos Sintomas\nTexto [Fonte 1].\n## Possíveis Causas\nCausas.\n## Próximos Passos\nPassos.")
+        )
+        await generate_response(
+            question="Atola papel e dá erro E-05",
+            query_rewritten="paper jam and E-05 error",
+            search_results=[_make_result()],
+            diagnostic_mode=True,
+        )
+        call_kwargs = _patch_openai_client.chat.completions.create.call_args.kwargs
+        system_content = call_kwargs["messages"][0]["content"]
+        assert "Análise dos Sintomas" in system_content
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_mode_uses_2500_tokens(self, _patch_openai_client):
+        """diagnostic_mode=True → max_tokens=2500."""
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("resposta diagnóstica [Fonte 1]")
+        )
+        await generate_response(
+            question="pergunta",
+            query_rewritten="query",
+            search_results=[_make_result()],
+            diagnostic_mode=True,
+        )
+        call_kwargs = _patch_openai_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["max_tokens"] == 2500
+
+    @pytest.mark.asyncio
+    async def test_normal_mode_uses_1500_tokens(self, _patch_openai_client):
+        """diagnostic_mode=False (default) → max_tokens=1500."""
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("resposta normal [Fonte 1]")
+        )
+        await generate_response(
+            question="pergunta",
+            query_rewritten="query",
+            search_results=[_make_result()],
+        )
+        call_kwargs = _patch_openai_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["max_tokens"] == 1500
+
+    @pytest.mark.asyncio
+    async def test_normal_mode_uses_original_prompt(self, _patch_openai_client):
+        """diagnostic_mode=False → system message NÃO contém 'Análise dos Sintomas'."""
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_llm_response("resposta normal [Fonte 1]")
+        )
+        await generate_response(
+            question="pergunta",
+            query_rewritten="query",
+            search_results=[_make_result()],
+        )
+        call_kwargs = _patch_openai_client.chat.completions.create.call_args.kwargs
+        system_content = call_kwargs["messages"][0]["content"]
+        assert "Análise dos Sintomas" not in system_content

@@ -38,6 +38,32 @@ FORMATO DA RESPOSTA:
 - Resposta clara e objetiva com citações [Fonte N] inline no texto
 - NÃO liste as fontes ao final — o sistema exibe as fontes automaticamente"""
 
+DIAGNOSTIC_SYSTEM_PROMPT = """Você é o assistente técnico da Kyotech, especializado em diagnóstico de equipamentos Fujifilm.
+O técnico relatou múltiplos sintomas. Analise cada um separadamente antes de sugerir causas.
+
+PERSONALIDADE:
+- Tom profissional mas acolhedor — trate o técnico como um colega
+- Seja direto e estruturado — diagnósticos precisam de clareza
+
+REGRAS OBRIGATÓRIAS:
+1. Responda SEMPRE em português brasileiro
+2. Use APENAS as informações dos trechos fornecidos — NUNCA invente
+3. Para cada afirmação, cite a fonte usando EXATAMENTE o formato [Fonte N] com colchetes
+4. Se a informação não está nos trechos, diga explicitamente
+5. Se houver conflito entre fontes, mencione ambas versões e indique a mais recente
+
+FORMATO OBRIGATÓRIO DA RESPOSTA:
+## Análise dos Sintomas
+[Aborde cada sintoma individualmente com citações [Fonte N]]
+
+## Possíveis Causas
+[Causas em comum entre os sintomas, ou causas independentes com citações [Fonte N]]
+
+## Próximos Passos
+[Procedimentos em ordem de prioridade com citações [Fonte N]]
+
+NÃO liste as fontes ao final — o sistema exibe as fontes automaticamente."""
+
 
 def build_context(results: List[SearchResult]) -> str:
     """Constrói o contexto dos trechos para o prompt."""
@@ -94,6 +120,7 @@ async def generate_response(
     search_results: List[SearchResult],
     history_messages: Optional[List[Dict[str, str]]] = None,
     history_summary: Optional[str] = None,
+    diagnostic_mode: bool = False,
 ) -> RAGResponse:
     """
     Gera resposta em português com citações baseadas nos resultados da busca.
@@ -113,7 +140,9 @@ async def generate_response(
 
     context = build_context(search_results)
 
-    messages: List[Dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    system_prompt = DIAGNOSTIC_SYSTEM_PROMPT if diagnostic_mode else SYSTEM_PROMPT
+    max_tokens = 2500 if diagnostic_mode else 1500
+    messages: List[Dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
     if history_summary:
         messages.append({
@@ -137,7 +166,7 @@ async def generate_response(
         model=settings.azure_openai_chat_deployment,
         messages=messages,
         temperature=0.2,
-        max_tokens=1500,
+        max_tokens=max_tokens,
     )
 
     answer = response.choices[0].message.content.strip()
