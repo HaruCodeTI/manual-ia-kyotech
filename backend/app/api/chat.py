@@ -8,7 +8,7 @@ import logging
 from typing import List, Optional, Union
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +27,7 @@ from app.services.version_comparator import (
 )
 from app.services import chat_repository
 from app.services.semantic_cache import get_cached_response
+from app.core.limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -157,18 +158,20 @@ async def _maybe_update_summary(session_id: Union[UUID, str]) -> None:
 
 
 @router.post("/ask", response_model=ChatResponse)
+@limiter.limit("20/minute")
 async def ask_question(
-    request: ChatRequest,
+    request: Request,
+    body: ChatRequest,
     background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    question = request.question.strip()
+    question = body.question.strip()
     logger.info(f"[{user.id}] Pergunta: {question}")
 
     # Resolver sessão
-    if request.session_id:
-        session_id = UUID(request.session_id)
+    if body.session_id:
+        session_id = UUID(body.session_id)
     else:
         title = question[:80] + ("…" if len(question) > 80 else "")
         session_id = await chat_repository.create_session(db, user.id, title)
@@ -176,7 +179,7 @@ async def ask_question(
     # Buscar histórico ANTES de inserir a mensagem atual
     history_messages = []
     history_summary = None
-    if request.session_id:
+    if body.session_id:
         history_messages = await chat_repository.get_recent_messages(db, session_id, limit=6)
         session_info = await chat_repository.get_session_summary(db, session_id)
         history_summary = session_info.get("history_summary")
@@ -252,7 +255,7 @@ async def ask_question(
             needs_clarification=True,
         )
 
-    equipment_filter = request.equipment_filter or rewritten.equipment_hint
+    equipment_filter = body.equipment_filter or rewritten.equipment_hint
 
     diagnostic_mode = False
     try:
