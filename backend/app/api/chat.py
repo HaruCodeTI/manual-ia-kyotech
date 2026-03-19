@@ -293,6 +293,7 @@ async def ask_question(
             )
     except Exception as exc:
         logger.warning(f"Falha no pipeline diagnóstico, usando pipeline normal: {exc}")
+        # Fallback não repassa include_all_versions — diagnóstico e comparação são mutuamente exclusivos
         results = await hybrid_search(
             db=db,
             query_en=rewritten.query_en,
