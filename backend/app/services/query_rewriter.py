@@ -29,9 +29,19 @@ Rules:
 3. Keep the query focused and specific (max 2-3 sentences)
 4. Classify the query as "manual" (procedures, specs, parts) or "informativo" (bulletins, updates, known issues)
 5. If the question mentions a specific equipment model, extract it
+6. Determine if the question needs clarification before searching.
+   Set needs_clarification to true if ANY of these apply:
+   - Procedure question (how to replace, torque spec, part location) with no equipment model mentioned
+   - Symptom too generic to search (e.g. "doesn't work", "gives error", "stopped working")
+   - Error code without any equipment or context
+   If the question is clear enough to search, or if conversation history already provides
+   the missing context, set needs_clarification to false.
+7. If needs_clarification is true, write a short clarification question in Brazilian Portuguese.
+   Be specific: ask for the missing information (equipment model, error code, symptom details).
+   Keep it under 20 words. Example: "Para qual equipamento você está buscando essa informação?"
 
 Respond ONLY with this JSON format, no markdown:
-{"query_en": "...", "doc_type": "manual" or "informativo" or "both", "equipment_hint": "model name or null"}"""
+{"query_en": "...", "doc_type": "manual" or "informativo" or "both", "equipment_hint": "model name or null", "needs_clarification": false, "clarification_question": null}"""
 
 
 @dataclass
@@ -40,6 +50,8 @@ class RewrittenQuery:
     query_en: str
     doc_type: Optional[str]  # "manual", "informativo", or "both"
     equipment_hint: Optional[str]
+    needs_clarification: bool = False
+    clarification_question: Optional[str] = None
 
 
 async def rewrite_query(
@@ -76,7 +88,7 @@ async def rewrite_query(
             {"role": "user", "content": user_content},
         ],
         temperature=0.1,
-        max_tokens=200,
+        max_tokens=300,
     )
 
     raw = response.choices[0].message.content.strip()
@@ -99,6 +111,8 @@ async def rewrite_query(
             query_en=parsed.get("query_en", question),
             doc_type=doc_type,
             equipment_hint=equipment,
+            needs_clarification=parsed.get("needs_clarification", False),
+            clarification_question=parsed.get("clarification_question"),
         )
     except (json.JSONDecodeError, KeyError) as e:
         logger.warning(f"Falha no parse do rewrite, usando query original: {e}")

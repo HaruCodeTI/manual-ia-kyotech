@@ -127,3 +127,48 @@ class TestRewriteQuery:
         user_content = call_messages[-1]["content"]
         assert "Previous conversation context" in user_content
         assert "Frontier-780" in user_content
+
+    @pytest.mark.asyncio
+    async def test_rewrite_ambiguous_procedure_no_equipment(self, _patch_openai_client):
+        """Pergunta de procedimento sem equipamento → needs_clarification=True."""
+        payload = {
+            "query_en": "pressure roller replacement",
+            "doc_type": "manual",
+            "equipment_hint": None,
+            "needs_clarification": True,
+            "clarification_question": "Para qual equipamento você está buscando essa informação?",
+        }
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response(json.dumps(payload))
+        )
+        result = await rewrite_query("Como trocar o rolo de pressão?")
+        assert result.needs_clarification is True
+        assert result.clarification_question is not None
+        assert len(result.clarification_question) > 0
+
+    @pytest.mark.asyncio
+    async def test_rewrite_clear_question_no_clarification(self, _patch_openai_client):
+        """Pergunta clara com equipamento → needs_clarification=False."""
+        payload = {
+            "query_en": "pressure roller Frontier-780 replacement",
+            "doc_type": "manual",
+            "equipment_hint": "frontier-780",
+            "needs_clarification": False,
+            "clarification_question": None,
+        }
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response(json.dumps(payload))
+        )
+        result = await rewrite_query("Como trocar o rolo do Frontier-780?")
+        assert result.needs_clarification is False
+        assert result.clarification_question is None
+
+    @pytest.mark.asyncio
+    async def test_rewrite_parse_error_defaults_to_no_clarification(self, _patch_openai_client):
+        """Falha de parse → needs_clarification=False (fallback seguro)."""
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response("resposta inválida não é json")
+        )
+        result = await rewrite_query("pergunta qualquer")
+        assert result.needs_clarification is False
+        assert result.clarification_question is None
