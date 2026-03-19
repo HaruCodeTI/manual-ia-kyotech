@@ -66,7 +66,7 @@ export function Sidebar({
       .then(setSessions)
       .catch(() => {})
       .finally(() => setLoadingSessions(false));
-  }, [status, activeSessionId]);
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();
