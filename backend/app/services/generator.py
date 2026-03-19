@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from app.services.embedder import get_openai_client
 from app.services.search import SearchResult
@@ -80,6 +80,8 @@ async def generate_response(
     question: str,
     query_rewritten: str,
     search_results: List[SearchResult],
+    history_messages: Optional[List[Dict[str, str]]] = None,
+    history_summary: Optional[str] = None,
 ) -> RAGResponse:
     """
     Gera resposta em português com citações baseadas nos resultados da busca.
@@ -99,17 +101,29 @@ async def generate_response(
 
     context = build_context(search_results)
 
+    messages: List[Dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    if history_summary:
+        messages.append({
+            "role": "system",
+            "content": f"Resumo do contexto anterior:\n{history_summary}",
+        })
+
+    if history_messages:
+        messages.extend(history_messages)
+
+    messages.append({
+        "role": "user",
+        "content": (
+            f"Pergunta do técnico: {question}\n\n"
+            f"Trechos encontrados:\n\n{context}"
+        ),
+    })
+
     client = get_openai_client()
     response = await client.chat.completions.create(
         model=settings.azure_openai_chat_deployment,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"Pergunta do técnico: {question}\n\n"
-                           f"Trechos encontrados:\n\n{context}",
-            },
-        ],
+        messages=messages,
         temperature=0.2,
         max_tokens=1500,
     )

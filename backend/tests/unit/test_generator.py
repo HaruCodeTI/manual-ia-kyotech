@@ -111,3 +111,104 @@ class TestGenerateResponse:
         assert len(resp.citations) == 1
         assert resp.citations[0].source_filename == "referenced.pdf"
         assert resp.total_sources == 2
+
+
+class TestGenerateResponseWithHistory:
+    @pytest.mark.asyncio
+    async def test_no_history_uses_simple_array(self):
+        """Sem histórico: messages = [system, user]"""
+        mock_client = AsyncMock()
+        choice = MagicMock()
+        choice.message.content = "Resposta [Fonte 1]."
+        chat_resp = MagicMock()
+        chat_resp.choices = [choice]
+        mock_client.chat.completions.create = AsyncMock(return_value=chat_resp)
+
+        with patch("app.services.generator.get_openai_client", return_value=mock_client):
+            await generate_response(
+                question="pergunta",
+                query_rewritten="question",
+                search_results=[_make_result()],
+            )
+
+        messages = mock_client.chat.completions.create.call_args[1]["messages"]
+        roles = [m["role"] for m in messages]
+        assert roles == ["system", "user"]
+
+    @pytest.mark.asyncio
+    async def test_with_history_uses_multiturn_array(self):
+        """Com histórico: messages = [system, user1, assistant1, user_atual]"""
+        mock_client = AsyncMock()
+        choice = MagicMock()
+        choice.message.content = "Resposta [Fonte 1]."
+        chat_resp = MagicMock()
+        chat_resp.choices = [choice]
+        mock_client.chat.completions.create = AsyncMock(return_value=chat_resp)
+
+        history = [
+            {"role": "user", "content": "pergunta anterior"},
+            {"role": "assistant", "content": "resposta anterior"},
+        ]
+
+        with patch("app.services.generator.get_openai_client", return_value=mock_client):
+            await generate_response(
+                question="nova pergunta",
+                query_rewritten="new question",
+                search_results=[_make_result()],
+                history_messages=history,
+            )
+
+        messages = mock_client.chat.completions.create.call_args[1]["messages"]
+        roles = [m["role"] for m in messages]
+        assert roles == ["system", "user", "assistant", "user"]
+        assert messages[1]["content"] == "pergunta anterior"
+        assert messages[2]["content"] == "resposta anterior"
+
+    @pytest.mark.asyncio
+    async def test_with_summary_adds_system_message(self):
+        """Com summary: messages = [system, system(summary), user]"""
+        mock_client = AsyncMock()
+        choice = MagicMock()
+        choice.message.content = "Resposta [Fonte 1]."
+        chat_resp = MagicMock()
+        chat_resp.choices = [choice]
+        mock_client.chat.completions.create = AsyncMock(return_value=chat_resp)
+
+        with patch("app.services.generator.get_openai_client", return_value=mock_client):
+            await generate_response(
+                question="pergunta",
+                query_rewritten="question",
+                search_results=[_make_result()],
+                history_summary="Técnico perguntou sobre Frontier-780.",
+            )
+
+        messages = mock_client.chat.completions.create.call_args[1]["messages"]
+        roles = [m["role"] for m in messages]
+        assert roles == ["system", "system", "user"]
+        assert "Resumo do contexto anterior" in messages[1]["content"]
+        assert "Frontier-780" in messages[1]["content"]
+
+    @pytest.mark.asyncio
+    async def test_with_summary_and_history(self):
+        """Com summary e histórico: [system, system(summary), user1, assistant1, user]"""
+        mock_client = AsyncMock()
+        choice = MagicMock()
+        choice.message.content = "Resposta [Fonte 1]."
+        chat_resp = MagicMock()
+        chat_resp.choices = [choice]
+        mock_client.chat.completions.create = AsyncMock(return_value=chat_resp)
+
+        history = [{"role": "user", "content": "q"}, {"role": "assistant", "content": "a"}]
+
+        with patch("app.services.generator.get_openai_client", return_value=mock_client):
+            await generate_response(
+                question="pergunta",
+                query_rewritten="question",
+                search_results=[_make_result()],
+                history_messages=history,
+                history_summary="Resumo.",
+            )
+
+        messages = mock_client.chat.completions.create.call_args[1]["messages"]
+        roles = [m["role"] for m in messages]
+        assert roles == ["system", "system", "user", "assistant", "user"]
