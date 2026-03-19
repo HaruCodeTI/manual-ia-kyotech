@@ -363,3 +363,118 @@ async def test_clarification_answer_proceeds_normally(async_client):
     # Verificar que rewrite_query recebeu o contexto da conversa
     call_kwargs = mock_rewrite.call_args.kwargs
     assert call_kwargs.get("conversation_context") is not None
+
+
+@pytest.mark.anyio
+async def test_diagnostic_query_calls_hybrid_search_twice(async_client):
+    """Pergunta diagnóstica → hybrid_search chamado 2 vezes (uma por sub-query)."""
+    session_id = uuid4()
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
+        patch("app.api.chat.is_diagnostic_query", return_value=True),
+        patch(
+            "app.api.chat.decompose_problems",
+            new_callable=AsyncMock,
+            return_value=["paper jam diagnosis", "E-05 error code"],
+        ),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]) as mock_search,
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
+        patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock, return_value=uuid4()),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        response = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": "Atola papel e também dá erro E-05"},
+        )
+
+    assert response.status_code == 200
+    assert mock_search.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_simple_query_calls_hybrid_search_once(async_client):
+    """Pergunta simples → hybrid_search chamado 1 vez."""
+    session_id = uuid4()
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
+        patch("app.api.chat.is_diagnostic_query", return_value=False),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]) as mock_search,
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
+        patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock, return_value=uuid4()),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        response = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": "Como trocar o rolo de pressão?"},
+        )
+
+    assert response.status_code == 200
+    assert mock_search.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_diagnostic_fallback_on_decompose_exception(async_client):
+    """Exceção em decompose_problems → fallback para pipeline normal, HTTP 200."""
+    session_id = uuid4()
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
+        patch("app.api.chat.is_diagnostic_query", return_value=True),
+        patch(
+            "app.api.chat.decompose_problems",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("timeout"),
+        ),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]) as mock_search,
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
+        patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock, return_value=uuid4()),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        response = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": "Atola papel e também dá erro"},
+        )
+
+    assert response.status_code == 200
+    # Fallback: hybrid_search chamado 1 vez com query original
+    assert mock_search.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_diagnostic_query_rewritten_is_original_rewrite(async_client):
+    """query_rewritten no response é sempre rewritten.query_en, não as sub-queries."""
+    session_id = uuid4()
+    rewritten = _make_rewritten()  # query_en = "how to replace the pressure roller"
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=rewritten),
+        patch("app.api.chat.is_diagnostic_query", return_value=True),
+        patch(
+            "app.api.chat.decompose_problems",
+            new_callable=AsyncMock,
+            return_value=["sub-query 1", "sub-query 2"],
+        ),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
+        patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock, return_value=uuid4()),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        response = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": "Atola papel e também dá erro"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["query_rewritten"] == rewritten.query_en
+    assert "sub-query 1" not in data["query_rewritten"]

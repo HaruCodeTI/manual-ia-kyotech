@@ -3,6 +3,7 @@ Kyotech AI — API de Chat (RAG)
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import List, Optional, Union
 from uuid import UUID
@@ -16,7 +17,8 @@ from app.core.config import settings
 from app.core.database import get_db, async_session
 from app.services.embedder import get_openai_client
 from app.services.query_rewriter import rewrite_query
-from app.services.search import hybrid_search
+from app.services.diagnostic_analyzer import decompose_problems, is_diagnostic_query
+from app.services.search import hybrid_search, SearchResult
 from app.services.generator import generate_response, Citation, build_clarification_from_weak_results
 from app.services.storage import generate_signed_url
 from app.services import chat_repository
@@ -248,14 +250,51 @@ async def ask_question(
 
     equipment_filter = request.equipment_filter or rewritten.equipment_hint
 
-    results = await hybrid_search(
-        db=db,
-        query_en=rewritten.query_en,
-        query_original=question,
-        limit=8,
-        doc_type=rewritten.doc_type,
-        equipment_key=equipment_filter,
-    )
+    diagnostic_mode = False
+    try:
+        if is_diagnostic_query(question):
+            sub_queries = await decompose_problems(question)
+            per_query_limit = max(4, 8 // len(sub_queries))
+            all_results = await asyncio.gather(*[
+                hybrid_search(
+                    db=db,
+                    query_en=q,
+                    query_original=question,
+                    limit=per_query_limit,
+                    doc_type=rewritten.doc_type,
+                    equipment_key=equipment_filter,
+                )
+                for q in sub_queries
+            ])
+            merged: dict[str, SearchResult] = {}
+            for batch in all_results:
+                for r in batch:
+                    if r.chunk_id not in merged or r.similarity > merged[r.chunk_id].similarity:
+                        merged[r.chunk_id] = r
+            results = sorted(merged.values(), key=lambda r: r.similarity, reverse=True)[:8]
+            diagnostic_mode = True
+            logger.info(f"Pipeline diagnóstico: {len(sub_queries)} sub-queries, {len(results)} resultados fundidos")
+        else:
+            results = await hybrid_search(
+                db=db,
+                query_en=rewritten.query_en,
+                query_original=question,
+                limit=8,
+                doc_type=rewritten.doc_type,
+                equipment_key=equipment_filter,
+            )
+    except Exception as exc:
+        logger.warning(f"Falha no pipeline diagnóstico, usando pipeline normal: {exc}")
+        results = await hybrid_search(
+            db=db,
+            query_en=rewritten.query_en,
+            query_original=question,
+            limit=8,
+            doc_type=rewritten.doc_type,
+            equipment_key=equipment_filter,
+        )
+        diagnostic_mode = False
+
     logger.info(f"Resultados encontrados: {len(results)}")
 
     # Ponto de saída 2: resultados fracos
@@ -285,6 +324,7 @@ async def ask_question(
         search_results=results,
         history_messages=history_messages,
         history_summary=history_summary,
+        diagnostic_mode=diagnostic_mode,
     )
 
     citations = [
