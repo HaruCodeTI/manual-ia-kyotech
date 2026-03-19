@@ -42,24 +42,38 @@ class RewrittenQuery:
     equipment_hint: Optional[str]
 
 
-async def rewrite_query(question: str) -> RewrittenQuery:
+async def rewrite_query(
+    question: str,
+    conversation_context: Optional[str] = None,
+) -> RewrittenQuery:
     """
     Reescreve a pergunta do técnico para busca otimizada.
-    
+
     Input: "Como trocar o rolo de pressão da Frontier 780?"
     Output: RewrittenQuery(
         query_en="How to replace pressure roller Frontier 780",
         doc_type="manual",
         equipment_hint="frontier-780"
     )
+
+    Se conversation_context for fornecido, é injetado no prompt para que o LLM
+    possa resolver referências ao histórico da conversa (ex: "e esse modelo?").
     """
     client = get_openai_client()
+
+    if conversation_context:
+        user_content = (
+            f"Previous conversation context:\n{conversation_context}\n\n"
+            f"Current question: {question}"
+        )
+    else:
+        user_content = question
 
     response = await client.chat.completions.create(
         model=settings.azure_openai_mini_deployment,
         messages=[
             {"role": "system", "content": REWRITE_PROMPT},
-            {"role": "user", "content": question},
+            {"role": "user", "content": user_content},
         ],
         temperature=0.1,
         max_tokens=200,

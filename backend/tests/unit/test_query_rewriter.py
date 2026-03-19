@@ -90,3 +90,40 @@ class TestRewriteQuery:
         assert result.doc_type is None
         assert result.equipment_hint is None
         assert result.original == "pergunta original"
+
+    @pytest.mark.asyncio
+    async def test_rewrite_without_context_omits_history_header(self, _patch_openai_client):
+        payload = {
+            "query_en": "pressure roller replacement",
+            "doc_type": "manual",
+            "equipment_hint": None,
+        }
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response(json.dumps(payload))
+        )
+        result = await rewrite_query("Como trocar o rolo?")
+        assert result.query_en == "pressure roller replacement"
+        assert result.equipment_hint is None
+        # conversation_context não deve aparecer no prompt quando omitido
+        call_messages = _patch_openai_client.chat.completions.create.call_args[1]["messages"]
+        user_content = call_messages[-1]["content"]
+        assert "Previous conversation" not in user_content
+
+    @pytest.mark.asyncio
+    async def test_rewrite_with_context_injects_history(self, _patch_openai_client):
+        payload = {
+            "query_en": "cleaning procedure Frontier-780",
+            "doc_type": "manual",
+            "equipment_hint": "frontier-780",
+        }
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response(json.dumps(payload))
+        )
+        context = "User: Como funciona o Frontier-780?\nAssistant: O Frontier-780 funciona assim..."
+        result = await rewrite_query("E o procedimento de limpeza?", conversation_context=context)
+        assert result.equipment_hint == "frontier-780"
+        # Contexto deve estar no prompt enviado ao LLM
+        call_messages = _patch_openai_client.chat.completions.create.call_args[1]["messages"]
+        user_content = call_messages[-1]["content"]
+        assert "Previous conversation context" in user_content
+        assert "Frontier-780" in user_content
