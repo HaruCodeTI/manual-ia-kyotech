@@ -15,6 +15,7 @@ from app.services.pdf_extractor import extract_text_from_pdf
 from app.services.chunker import chunk_pages
 from app.services.embedder import generate_embeddings
 from app.services.storage import upload_pdf
+from app.services.semantic_cache import invalidate_cache
 from app.services import repository
 
 logger = logging.getLogger(__name__)
@@ -102,6 +103,13 @@ async def ingest_document(
             await repository.insert_chunks_with_embeddings(db, version_id, chunks, embeddings)
 
         logger.info(f"✅ Ingestion completa: {filename} → {len(chunks)} chunks")
+
+        # Invalidar cache semântico — novo documento pode melhorar respostas futuras
+        # try/except isolado: falha no cache não deve retornar erro de ingestion
+        try:
+            await invalidate_cache(db)
+        except Exception as cache_err:
+            logger.warning(f"Falha ao invalidar cache semântico (não crítico): {cache_err}")
 
         return IngestionResult(
             success=True,
