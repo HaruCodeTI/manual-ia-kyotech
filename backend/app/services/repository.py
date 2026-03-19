@@ -150,7 +150,7 @@ async def insert_chunks_with_embeddings(
         # Prefixo "c" obrigatório: asyncpg rejeita parâmetros nomeados iniciando com dígito.
         embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
         value_rows.append(
-            f"(:version_id, :c{i}_page, :c{i}_idx, :c{i}_content, :c{i}_emb::vector)"
+            f"(:version_id, :c{i}_page, :c{i}_idx, :c{i}_content, CAST(:c{i}_emb AS vector))"
         )
         params[f"c{i}_page"] = chunk.page_number
         params[f"c{i}_idx"] = chunk.chunk_index
