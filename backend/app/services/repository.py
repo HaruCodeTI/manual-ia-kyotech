@@ -145,16 +145,17 @@ async def insert_chunks_with_embeddings(
     value_rows: list = []
 
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-        # Seguro: valores de embedding são passados como parâmetros nomeados (:N_emb),
+        # Seguro: valores de embedding são passados como parâmetros nomeados (:cN_emb),
         # não interpolados diretamente na string SQL — sem risco de SQL injection.
+        # Prefixo "c" obrigatório: asyncpg rejeita parâmetros nomeados iniciando com dígito.
         embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
         value_rows.append(
-            f"(:version_id, :{i}_page, :{i}_idx, :{i}_content, :{i}_emb::vector)"
+            f"(:version_id, :c{i}_page, :c{i}_idx, :c{i}_content, :c{i}_emb::vector)"
         )
-        params[f"{i}_page"] = chunk.page_number
-        params[f"{i}_idx"] = chunk.chunk_index
-        params[f"{i}_content"] = chunk.content
-        params[f"{i}_emb"] = embedding_str
+        params[f"c{i}_page"] = chunk.page_number
+        params[f"c{i}_idx"] = chunk.chunk_index
+        params[f"c{i}_content"] = chunk.content
+        params[f"c{i}_emb"] = embedding_str
 
     await db.execute(
         text(f"""
