@@ -3,7 +3,7 @@ Kyotech AI — Configurações centralizadas
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic_settings import BaseSettings
 from pydantic import Field
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     clerk_jwks_url: str = ""
     clerk_jwt_audience: Optional[str] = None
 
-    environment: str = "development"
+    environment: Literal["development", "test", "staging", "production"] = "development"
 
     chunk_size: int = 800
     chunk_overlap: int = 200

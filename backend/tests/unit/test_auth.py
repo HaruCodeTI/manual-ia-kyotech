@@ -1,7 +1,7 @@
 """Tests for app.core.auth — _extract_role, get_current_user, require_role."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import jwt as pyjwt
 import pytest
@@ -55,6 +55,17 @@ class TestGetCurrentUser:
         with patch("app.core.auth.settings") as mock_settings:
             mock_settings.clerk_jwks_url = ""
             mock_settings.environment = "production"
+            with pytest.raises(HTTPException) as exc_info:
+                await get_current_user(credentials=None)
+            assert exc_info.value.status_code == 500
+            assert "CLERK_JWKS_URL" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_staging_bypass_blocked_without_jwks_url(self):
+        """When clerk_jwks_url is empty in staging, raise HTTP 500."""
+        with patch("app.core.auth.settings") as mock_settings:
+            mock_settings.clerk_jwks_url = ""
+            mock_settings.environment = "staging"
             with pytest.raises(HTTPException) as exc_info:
                 await get_current_user(credentials=None)
             assert exc_info.value.status_code == 500
