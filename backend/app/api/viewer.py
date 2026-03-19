@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import OrderedDict
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -63,8 +64,8 @@ async def _get_pdf_bytes(storage_path: str) -> bytes:
 class ViewerInfoResponse(BaseModel):
     version_id: str
     source_filename: str
-    equipment_key: str
-    doc_type: str
+    equipment_key: Optional[str]
+    doc_type: Optional[str]
     published_date: str
     total_pages: int
 
