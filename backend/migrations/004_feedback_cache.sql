@@ -7,10 +7,8 @@ CREATE TABLE IF NOT EXISTS message_feedback (
     message_id  UUID NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
     rating      VARCHAR(10) NOT NULL CHECK (rating IN ('thumbs_up', 'thumbs_down')),
     created_at  TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (message_id)  -- um feedback por mensagem
+    UNIQUE (message_id)  -- um feedback por mensagem; UNIQUE já cria índice B-tree
 );
-
-CREATE INDEX IF NOT EXISTS idx_feedback_message ON message_feedback(message_id);
 
 -- Coluna quality_score nos chunks (começa em 0, sobe/desce com feedback)
 ALTER TABLE chunks ADD COLUMN IF NOT EXISTS quality_score FLOAT DEFAULT 0.0;
