@@ -36,7 +36,9 @@ async def record_feedback(
         {"msg_id": str(message_id)},
     )
     msg_row = msg_result.fetchone()
-    citations = msg_row[0] if msg_row and msg_row[0] else []
+    if not msg_row:
+        return False
+    citations = msg_row[0] if msg_row[0] else []
 
     # INSERT-first: ON CONFLICT DO NOTHING é atômico — elimina race condition TOCTOU.
     # Se rowcount == 0, outra requisição já registrou o feedback (idempotente).
@@ -50,7 +52,6 @@ async def record_feedback(
     )
     if insert_result.rowcount == 0:
         logger.info(f"Feedback já existente para mensagem {message_id}, ignorando")
-        await db.rollback()
         return False
 
     # Atualizar quality_score dos chunks citados (na mesma transação)
