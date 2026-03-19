@@ -212,3 +212,12 @@ class TestGenerateResponseWithHistory:
         messages = mock_client.chat.completions.create.call_args[1]["messages"]
         roles = [m["role"] for m in messages]
         assert roles == ["system", "system", "user", "assistant", "user"]
+
+
+def test_build_clarification_from_weak_results():
+    from app.services.generator import build_clarification_from_weak_results
+    result = build_clarification_from_weak_results("pergunta qualquer")
+    assert isinstance(result, str)
+    assert len(result) > 0
+    # Deve ser em português
+    assert any(word in result.lower() for word in ["encontrei", "detalhes", "equipamento", "precisas"])

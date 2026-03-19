@@ -17,12 +17,14 @@ from app.core.database import get_db, async_session
 from app.services.embedder import get_openai_client
 from app.services.query_rewriter import rewrite_query
 from app.services.search import hybrid_search
-from app.services.generator import generate_response, Citation
+from app.services.generator import generate_response, Citation, build_clarification_from_weak_results
 from app.services.storage import generate_signed_url
 from app.services import chat_repository
 from app.services.semantic_cache import get_cached_response
 
 logger = logging.getLogger(__name__)
+
+CLARIFICATION_THRESHOLD = 0.45
 
 router = APIRouter(prefix="/chat", tags=["Chat RAG"])
 
@@ -62,6 +64,7 @@ class ChatResponse(BaseModel):
     model_used: str
     session_id: str
     message_id: str
+    needs_clarification: bool = False  # NEW
 
 
 def _build_conversation_context(
@@ -220,8 +223,28 @@ async def ask_question(
     rewritten = await rewrite_query(question, conversation_context=conversation_context)
     logger.info(
         f"Query reescrita: '{rewritten.query_en}' "
-        f"(tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint})"
+        f"(tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint}, "
+        f"clarification: {rewritten.needs_clarification})"
     )
+
+    # Ponto de saída 1: rewriter detectou ambiguidade
+    if rewritten.needs_clarification and rewritten.clarification_question:
+        clarification_msg_id = await chat_repository.add_message(
+            db, session_id, "assistant", rewritten.clarification_question,
+            metadata={"is_clarification": True},
+        )
+        background_tasks.add_task(_maybe_update_summary, session_id)
+        return ChatResponse(
+            answer=rewritten.clarification_question,
+            citations=[],
+            query_original=question,
+            query_rewritten=rewritten.query_en,
+            total_sources=0,
+            model_used=settings.azure_openai_mini_deployment,
+            session_id=str(session_id),
+            message_id=str(clarification_msg_id),
+            needs_clarification=True,
+        )
 
     equipment_filter = request.equipment_filter or rewritten.equipment_hint
 
@@ -234,6 +257,27 @@ async def ask_question(
         equipment_key=equipment_filter,
     )
     logger.info(f"Resultados encontrados: {len(results)}")
+
+    # Ponto de saída 2: resultados fracos
+    top_score = max((r.similarity for r in results), default=0.0)
+    if results and top_score < CLARIFICATION_THRESHOLD:
+        clarification = build_clarification_from_weak_results(question)
+        clarification_msg_id = await chat_repository.add_message(
+            db, session_id, "assistant", clarification,
+            metadata={"is_clarification": True},
+        )
+        background_tasks.add_task(_maybe_update_summary, session_id)
+        return ChatResponse(
+            answer=clarification,
+            citations=[],
+            query_original=question,
+            query_rewritten=rewritten.query_en,
+            total_sources=0,
+            model_used="deterministic",
+            session_id=str(session_id),
+            message_id=str(clarification_msg_id),
+            needs_clarification=True,
+        )
 
     rag_response = await generate_response(
         question=question,

@@ -54,6 +54,18 @@ def build_context(results: List[SearchResult]) -> str:
     return "\n---\n".join(context_parts)
 
 
+def build_clarification_from_weak_results(question: str) -> str:
+    """
+    Retorna pergunta de clarificação quando resultados RAG têm score fraco.
+    Determinístico — não chama LLM.
+    """
+    return (
+        "Não encontrei informações suficientemente precisas para responder com confiança. "
+        "Poderia fornecer mais detalhes? Por exemplo: qual equipamento, "
+        "código de erro exibido, ou em qual etapa do processo ocorre o problema?"
+    )
+
+
 @dataclass
 class Citation:
     source_index: int
