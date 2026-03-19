@@ -35,7 +35,6 @@ def _make_rag_response(question: str = "test question") -> RAGResponse:
                 equipment_key="frontier-780",
                 doc_type="manual",
                 published_date="2025-01-15",
-                storage_path="documents/frontier-780/manual_frontier.pdf",
                 document_version_id="ver-123",
             ),
         ],
@@ -127,22 +126,6 @@ async def test_ask_with_equipment_filter(async_client):
     # Verify hybrid_search was called with the equipment_filter
     call_kwargs = mock_search.call_args
     assert call_kwargs.kwargs.get("equipment_key") == "versant-180"
-
-
-@pytest.mark.anyio
-async def test_get_pdf_url(async_client):
-    fake_url = "https://fakeaccount.blob.core.windows.net/documents/manual.pdf?sv=2025"
-
-    with patch("app.api.chat.generate_signed_url", return_value=fake_url):
-        resp = await async_client.get(
-            "/api/v1/chat/pdf-url",
-            params={"storage_path": "documents/manual.pdf", "page": 5},
-        )
-
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "#page=5" in data["url"]
-    assert data["url"].startswith(fake_url)
 
 
 @pytest.mark.anyio

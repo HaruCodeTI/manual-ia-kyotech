@@ -111,30 +111,6 @@ export async function uploadDocument(
   return res.json();
 }
 
-export async function getPdfUrl(
-  storagePath: string,
-  page: number
-): Promise<string> {
-  const auth = await authHeaders();
-  const params = new URLSearchParams({
-    storage_path: storagePath,
-    page: String(page),
-  });
-  let res: Response;
-  try {
-    res = await fetchWithTimeout(
-      `${API_BASE}/api/v1/chat/pdf-url?${params}`,
-      { headers: auth },
-      15_000
-    );
-  } catch (err) {
-    handleFetchError(err);
-  }
-  if (!res.ok) throw new Error(await parseApiError(res));
-  const data = await res.json();
-  return data.url;
-}
-
 // --- Viewer API ---
 
 export interface ViewerInfo {

@@ -25,7 +25,6 @@ from app.services.version_comparator import (
     detect_multi_version,
     group_chunks_by_version,
 )
-from app.services.storage import generate_signed_url
 from app.services import chat_repository
 from app.services.semantic_cache import get_cached_response
 
@@ -58,7 +57,6 @@ class CitationResponse(BaseModel):
     equipment_key: Optional[str] = None
     doc_type: Optional[str] = None
     published_date: str
-    storage_path: str
     document_version_id: str = ""
 
 
@@ -219,7 +217,6 @@ async def ask_question(
                 equipment_key=c.get("equipment_key"),
                 doc_type=c.get("doc_type"),
                 published_date=c.get("published_date", ""),
-                storage_path=c.get("storage_path", ""),
                 document_version_id=c.get("document_version_id", ""),
             )
             for c in cached["citations"]
@@ -360,7 +357,6 @@ async def ask_question(
             equipment_key=c.equipment_key,
             doc_type=c.doc_type,
             published_date=c.published_date,
-            storage_path=c.storage_path,
             document_version_id=c.document_version_id,
         )
         for c in rag_response.citations
@@ -391,16 +387,3 @@ async def ask_question(
         message_id=str(assistant_msg_id),
     )
 
-
-@router.get("/pdf-url")
-async def get_pdf_url(
-    storage_path: str,
-    page: int = 1,
-    _user: CurrentUser = Depends(get_current_user),
-):
-    try:
-        url = generate_signed_url(storage_path, expiry_hours=1)
-        return {"url": f"{url}#page={page}"}
-    except Exception as e:
-        logger.error(f"Erro ao gerar SAS URL: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao gerar link do PDF.")

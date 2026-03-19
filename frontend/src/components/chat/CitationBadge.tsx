@@ -30,8 +30,7 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
     e.stopPropagation();
     setShowDetail(false);
 
-    // Usar document_version_id se disponível, senão fallback para storage_path
-    const versionId = citation.document_version_id || citation.storage_path;
+    const versionId = citation.document_version_id;
 
     openViewer({
       versionId,
