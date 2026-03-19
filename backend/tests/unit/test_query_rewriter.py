@@ -40,6 +40,8 @@ class TestRewriteQuery:
         assert result.query_en == "How to replace pressure roller"
         assert result.doc_type == "manual"
         assert result.equipment_hint == "frontier-780"
+        assert result.needs_clarification is False
+        assert result.clarification_question is None
 
     @pytest.mark.asyncio
     async def test_doc_type_both_becomes_none(self, _patch_openai_client):
@@ -145,6 +147,7 @@ class TestRewriteQuery:
         assert result.needs_clarification is True
         assert result.clarification_question is not None
         assert len(result.clarification_question) > 0
+        assert result.clarification_question == "Para qual equipamento você está buscando essa informação?"
 
     @pytest.mark.asyncio
     async def test_rewrite_clear_question_no_clarification(self, _patch_openai_client):
