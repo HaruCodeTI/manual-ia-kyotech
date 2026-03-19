@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -203,7 +204,7 @@ async def get_session_summary(
 async def count_messages_since(
     db: AsyncSession,
     session_id: UUID,
-    since: Optional[Any] = None,
+    since: Optional[datetime] = None,
 ) -> int:
     """Conta mensagens da sessão. Se since fornecido, conta apenas após essa data."""
     if since is not None:
@@ -226,7 +227,7 @@ async def get_messages_before_recent(
     db: AsyncSession,
     session_id: UUID,
     skip_last: int = 6,
-    since: Optional[Any] = None,
+    since: Optional[datetime] = None,
 ) -> List[Dict[str, str]]:
     """
     Retorna mensagens antigas exceto as últimas skip_last.

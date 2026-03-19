@@ -179,6 +179,16 @@ async def test_get_session_summary_no_summary(mock_db, make_mock_result):
     assert result["last_summarized_at"] is None
 
 
+@pytest.mark.asyncio
+async def test_get_session_summary_session_not_found(mock_db, make_mock_result):
+    mock_db.execute = AsyncMock(
+        return_value=make_mock_result(rows=[])
+    )
+    result = await get_session_summary(mock_db, uuid4())
+    assert result["history_summary"] is None
+    assert result["last_summarized_at"] is None
+
+
 # ── count_messages_since ──
 
 @pytest.mark.asyncio
