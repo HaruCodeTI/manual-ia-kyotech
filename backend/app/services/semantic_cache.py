@@ -6,6 +6,7 @@ sem chamar OpenAI nem fazer busca vetorial.
 """
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -60,12 +61,15 @@ async def get_cached_response(
         logger.debug(f"Cache miss: melhor similaridade={similarity:.3f} < {SIMILARITY_THRESHOLD}")
         return None
 
-    # Incrementa hit_count
-    await db.execute(
-        text("UPDATE semantic_cache SET hit_count = hit_count + 1 WHERE id = :id"),
-        {"id": row[0]},
-    )
-    await db.commit()
+    # Incrementa hit_count — métrica não crítica, falha não deve bloquear a resposta
+    try:
+        await db.execute(
+            text("UPDATE semantic_cache SET hit_count = hit_count + 1 WHERE id = :id"),
+            {"id": row[0]},
+        )
+        await db.commit()
+    except Exception as e:
+        logger.warning(f"Falha ao incrementar hit_count (não crítico): {e}")
 
     logger.info(f"Cache HIT: similarity={similarity:.3f}, pergunta='{question[:60]}'")
     return {
@@ -92,7 +96,6 @@ async def cache_response(
     embedding = await generate_single_embedding(question)
     embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
 
-    import json
     await db.execute(
         text("""
             INSERT INTO semantic_cache
