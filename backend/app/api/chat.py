@@ -9,7 +9,7 @@ from typing import List, Optional, Union
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
@@ -36,7 +36,7 @@ router = APIRouter(prefix="/chat", tags=["Chat RAG"])
 
 
 class ChatRequest(BaseModel):
-    question: str
+    question: str = Field(..., max_length=2000)
     equipment_filter: Optional[str] = None
     session_id: Optional[str] = None
 

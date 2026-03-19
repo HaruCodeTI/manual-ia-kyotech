@@ -252,7 +252,7 @@ async def test_clarification_from_weak_score(async_client):
         chunk_id="c1", content="texto", page_number=1, similarity=0.2,
         document_id="d1", doc_type="manual", equipment_key="equip-a",
         published_date=dt(2024, 1, 1), source_filename="f.pdf",
-        storage_path="container/blob", search_type="vector",
+        search_type="vector",
         document_version_id="v1", quality_score=0.0,
     )
     session_id = uuid4()
@@ -290,7 +290,7 @@ async def test_good_score_proceeds_normally(async_client):
         chunk_id="c1", content="texto", page_number=1, similarity=0.8,
         document_id="d1", doc_type="manual", equipment_key="frontier-780",
         published_date=dt(2024, 1, 1), source_filename="f.pdf",
-        storage_path="container/blob", search_type="vector",
+        search_type="vector",
         document_version_id="v1", quality_score=0.9,
     )
     session_id = uuid4()
@@ -461,3 +461,40 @@ async def test_diagnostic_query_rewritten_is_original_rewrite(async_client):
     data = response.json()
     assert data["query_rewritten"] == rewritten.query_en
     assert "sub-query 1" not in data["query_rewritten"]
+
+
+@pytest.mark.anyio
+async def test_question_exceeds_max_length_returns_422(async_client):
+    """question com >2000 caracteres deve retornar 422 Unprocessable Entity."""
+    long_question = "a" * 2001  # Um caractere acima do limite
+    resp = await async_client.post(
+        "/api/v1/chat/ask",
+        json={"question": long_question},
+    )
+    assert resp.status_code == 422
+    # Valida que a resposta contém erro de validação
+    data = resp.json()
+    assert "detail" in data
+
+
+@pytest.mark.anyio
+async def test_question_at_max_length_succeeds(async_client):
+    """question com exatamente 2000 caracteres deve ser aceita."""
+    session_id = uuid4()
+    exact_question = "a" * 2000  # Exatamente no limite
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
+        patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        resp = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": exact_question},
+        )
+
+    assert resp.status_code == 200

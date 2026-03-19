@@ -54,6 +54,9 @@ async def upload_document(
 
     file_bytes = await file.read()
 
+    if not file_bytes.startswith(b"%PDF-"):
+        raise HTTPException(status_code=400, detail="Arquivo inválido: não é um PDF válido")
+
     if len(file_bytes) == 0:
         raise HTTPException(status_code=400, detail="Arquivo vazio.")
 
