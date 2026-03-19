@@ -218,3 +218,4 @@ async def test_ask_passes_history_to_generate_response(async_client):
     assert resp.status_code == 200
     call_kwargs = mock_gen.call_args.kwargs
     assert call_kwargs.get("history_messages") == history
+    assert "history_summary" in call_kwargs  # also forwarded (None in this case)

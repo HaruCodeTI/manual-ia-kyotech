@@ -4,7 +4,7 @@ Kyotech AI — API de Chat (RAG)
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -115,7 +115,7 @@ async def _generate_summary(
     return response.choices[0].message.content.strip()
 
 
-async def _maybe_update_summary(session_id) -> None:
+async def _maybe_update_summary(session_id: Union[UUID, str]) -> None:
     """
     Verifica se precisa sumarizar e persiste o resultado.
     Abre sua própria sessão DB — NÃO reutiliza a sessão da request.
@@ -145,6 +145,7 @@ async def _maybe_update_summary(session_id) -> None:
             logger.info(f"Summary atualizado para sessão {session_id}")
         except Exception as e:
             logger.error(f"Erro ao atualizar summary da sessão {session_id}: {e}")
+            await db.rollback()
 
 
 @router.post("/ask", response_model=ChatResponse)
