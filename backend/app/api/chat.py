@@ -167,7 +167,7 @@ async def ask_question(
     db: AsyncSession = Depends(get_db),
 ):
     question = body.question.strip()
-    logger.info(f"[{user.id}] Pergunta: {question}")
+    logger.info(f"[{user.id}] Pergunta recebida (chars={len(question)}, equipment={body.equipment_filter})")
 
     # Resolver sessão
     if body.session_id:
@@ -191,8 +191,7 @@ async def ask_question(
     conversation_context = _build_conversation_context(history_messages, history_summary)
     rewritten = await rewrite_query(question, conversation_context=conversation_context)
     logger.info(
-        f"Query reescrita: '{rewritten.query_en}' "
-        f"(tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint}, "
+        f"Query reescrita (tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint}, "
         f"clarification: {rewritten.needs_clarification}, "
         f"comparison: {rewritten.is_comparison_query})"
     )
