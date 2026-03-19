@@ -120,3 +120,113 @@ async def test_add_message_returns_uuid(mock_db, make_mock_result):
     # At least 2 execute calls: INSERT message + UPDATE session updated_at
     assert mock_db.execute.call_count >= 2
     mock_db.commit.assert_awaited_once()
+
+
+from app.services.chat_repository import (
+    get_recent_messages,
+    get_session_summary,
+    count_messages_since,
+    get_messages_before_recent,
+    update_history_summary,
+)
+
+
+# ── get_recent_messages ──
+
+@pytest.mark.asyncio
+async def test_get_recent_messages_returns_last_n(mock_db, make_mock_result):
+    now = datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    sid = uuid4()
+    rows = [
+        (uuid4(), "user", "pergunta 1", now),
+        (uuid4(), "assistant", "resposta 1", now),
+    ]
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=rows))
+    result = await get_recent_messages(mock_db, sid, limit=6)
+    assert len(result) == 2
+    assert result[0]["role"] == "user"
+    assert result[0]["content"] == "pergunta 1"
+    assert result[1]["role"] == "assistant"
+
+
+@pytest.mark.asyncio
+async def test_get_recent_messages_empty(mock_db, make_mock_result):
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+    result = await get_recent_messages(mock_db, uuid4())
+    assert result == []
+
+
+# ── get_session_summary ──
+
+@pytest.mark.asyncio
+async def test_get_session_summary_returns_dict(mock_db, make_mock_result):
+    now = datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    mock_db.execute = AsyncMock(
+        return_value=make_mock_result(rows=[("resumo anterior", now)])
+    )
+    result = await get_session_summary(mock_db, uuid4())
+    assert result["history_summary"] == "resumo anterior"
+    assert result["last_summarized_at"] == now
+
+
+@pytest.mark.asyncio
+async def test_get_session_summary_no_summary(mock_db, make_mock_result):
+    mock_db.execute = AsyncMock(
+        return_value=make_mock_result(rows=[(None, None)])
+    )
+    result = await get_session_summary(mock_db, uuid4())
+    assert result["history_summary"] is None
+    assert result["last_summarized_at"] is None
+
+
+# ── count_messages_since ──
+
+@pytest.mark.asyncio
+async def test_count_messages_since_no_date(mock_db, make_mock_result):
+    mock_result = make_mock_result(rows=[])
+    mock_result.scalar.return_value = 5
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    count = await count_messages_since(mock_db, uuid4(), since=None)
+    assert count == 5
+
+
+@pytest.mark.asyncio
+async def test_count_messages_since_with_date(mock_db, make_mock_result):
+    mock_result = make_mock_result(rows=[])
+    mock_result.scalar.return_value = 3
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    since = datetime(2024, 6, 1, tzinfo=timezone.utc)
+    count = await count_messages_since(mock_db, uuid4(), since=since)
+    assert count == 3
+    # Verificar que o SQL inclui filtro de data
+    sql_text = str(mock_db.execute.call_args[0][0].text)
+    assert "created_at" in sql_text
+
+
+# ── get_messages_before_recent ──
+
+@pytest.mark.asyncio
+async def test_get_messages_before_recent_returns_old(mock_db, make_mock_result):
+    now = datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    rows = [
+        (uuid4(), "user", "msg antiga", now),
+    ]
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=rows))
+    result = await get_messages_before_recent(mock_db, uuid4(), skip_last=6)
+    assert len(result) == 1
+    assert result[0]["role"] == "user"
+    assert result[0]["content"] == "msg antiga"
+
+
+# ── update_history_summary ──
+
+@pytest.mark.asyncio
+async def test_update_history_summary_commits(mock_db, make_mock_result):
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+    await update_history_summary(mock_db, uuid4(), "novo resumo")
+    mock_db.execute.assert_awaited_once()
+    mock_db.commit.assert_awaited_once()
+    # Verificar que o SQL atualiza last_summarized_at
+    sql_text = str(mock_db.execute.call_args[0][0].text)
+    assert "last_summarized_at" in sql_text
+    assert "history_summary" in sql_text

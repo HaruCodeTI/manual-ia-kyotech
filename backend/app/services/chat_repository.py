@@ -152,3 +152,131 @@ async def delete_session(
     )
     await db.commit()
     return result.rowcount > 0
+
+
+async def get_recent_messages(
+    db: AsyncSession,
+    session_id: UUID,
+    limit: int = 6,
+) -> List[Dict[str, str]]:
+    """Retorna as últimas N mensagens em ordem cronológica. Chamar ANTES de add_message."""
+    result = await db.execute(
+        text("""
+            SELECT id, role, content, created_at FROM (
+                SELECT id, role, content, created_at
+                FROM chat_messages
+                WHERE session_id = :sid
+                ORDER BY created_at DESC
+                LIMIT :limit
+            ) sub
+            ORDER BY created_at ASC
+        """),
+        {"sid": str(session_id), "limit": limit},
+    )
+    rows = result.fetchall()
+    # Retorna em ordem cronológica (mais antiga primeiro)
+    return [
+        {"role": row[1], "content": row[2]}
+        for row in rows
+    ]
+
+
+async def get_session_summary(
+    db: AsyncSession,
+    session_id: UUID,
+) -> Dict[str, Any]:
+    """Retorna history_summary e last_summarized_at da sessão."""
+    result = await db.execute(
+        text("""
+            SELECT history_summary, last_summarized_at
+            FROM chat_sessions
+            WHERE id = :id
+        """),
+        {"id": str(session_id)},
+    )
+    row = result.fetchone()
+    if not row:
+        return {"history_summary": None, "last_summarized_at": None}
+    return {"history_summary": row[0], "last_summarized_at": row[1]}
+
+
+async def count_messages_since(
+    db: AsyncSession,
+    session_id: UUID,
+    since: Optional[Any] = None,
+) -> int:
+    """Conta mensagens da sessão. Se since fornecido, conta apenas após essa data."""
+    if since is not None:
+        result = await db.execute(
+            text("""
+                SELECT COUNT(*) FROM chat_messages
+                WHERE session_id = :sid AND created_at > :since
+            """),
+            {"sid": str(session_id), "since": since},
+        )
+    else:
+        result = await db.execute(
+            text("SELECT COUNT(*) FROM chat_messages WHERE session_id = :sid"),
+            {"sid": str(session_id)},
+        )
+    return result.scalar() or 0
+
+
+async def get_messages_before_recent(
+    db: AsyncSession,
+    session_id: UUID,
+    skip_last: int = 6,
+    since: Optional[Any] = None,
+) -> List[Dict[str, str]]:
+    """
+    Retorna mensagens antigas exceto as últimas skip_last.
+    Se since fornecido, considera apenas mensagens após essa data.
+    Usado para gerar summary incremental.
+    """
+    if since is not None:
+        result = await db.execute(
+            text("""
+                SELECT id, role, content, created_at FROM (
+                    SELECT id, role, content, created_at,
+                           ROW_NUMBER() OVER (ORDER BY created_at DESC) as rn
+                    FROM chat_messages
+                    WHERE session_id = :sid AND created_at > :since
+                ) sub
+                WHERE rn > :skip
+                ORDER BY created_at
+            """),
+            {"sid": str(session_id), "since": since, "skip": skip_last},
+        )
+    else:
+        result = await db.execute(
+            text("""
+                SELECT id, role, content, created_at FROM (
+                    SELECT id, role, content, created_at,
+                           ROW_NUMBER() OVER (ORDER BY created_at DESC) as rn
+                    FROM chat_messages
+                    WHERE session_id = :sid
+                ) sub
+                WHERE rn > :skip
+                ORDER BY created_at
+            """),
+            {"sid": str(session_id), "skip": skip_last},
+        )
+    return [{"role": row[1], "content": row[2]} for row in result.fetchall()]
+
+
+async def update_history_summary(
+    db: AsyncSession,
+    session_id: UUID,
+    summary: str,
+) -> None:
+    """Persiste o summary e atualiza last_summarized_at = NOW()."""
+    await db.execute(
+        text("""
+            UPDATE chat_sessions
+            SET history_summary = :summary,
+                last_summarized_at = NOW()
+            WHERE id = :id
+        """),
+        {"summary": summary, "id": str(session_id)},
+    )
+    await db.commit()
