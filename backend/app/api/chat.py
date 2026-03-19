@@ -7,12 +7,14 @@ import logging
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
-from app.core.database import get_db
+from app.core.config import settings
+from app.core.database import get_db, async_session
+from app.services.embedder import get_openai_client
 from app.services.query_rewriter import rewrite_query
 from app.services.search import hybrid_search
 from app.services.generator import generate_response, Citation
@@ -62,9 +64,93 @@ class ChatResponse(BaseModel):
     message_id: str
 
 
+def _build_conversation_context(
+    history_messages: list,
+    history_summary: Optional[str],
+) -> Optional[str]:
+    """Formata histórico como string para o query rewriter."""
+    if not history_messages and not history_summary:
+        return None
+    parts = []
+    if history_summary:
+        parts.append(f"Resumo anterior: {history_summary}")
+    for m in history_messages:
+        role = "User" if m["role"] == "user" else "Assistant"
+        parts.append(f"{role}: {m['content']}")
+    return "\n".join(parts)
+
+
+async def _generate_summary(
+    messages: list,
+    existing_summary: Optional[str] = None,
+) -> str:
+    """Gera summary incremental usando gpt-4o-mini."""
+    formatted = "\n".join(
+        f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        for m in messages
+    )
+
+    if existing_summary:
+        prompt = (
+            f"Você tem um resumo existente de uma conversa técnica e novas mensagens para incorporar.\n"
+            f"Atualize o resumo incluindo os novos tópicos. Máximo 5 frases. Português brasileiro.\n\n"
+            f"Resumo existente:\n{existing_summary}\n\n"
+            f"Novas mensagens:\n{formatted}"
+        )
+    else:
+        prompt = (
+            f"Resuma em 3-5 frases os principais tópicos técnicos discutidos.\n"
+            f"Inclua: equipamentos mencionados, problemas identificados, soluções discutidas.\n"
+            f"Seja conciso e factual. Responda em português brasileiro.\n\n"
+            f"Conversa:\n{formatted}"
+        )
+
+    client = get_openai_client()
+    response = await client.chat.completions.create(
+        model=settings.azure_openai_mini_deployment,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=300,
+    )
+    return response.choices[0].message.content.strip()
+
+
+async def _maybe_update_summary(session_id) -> None:
+    """
+    Verifica se precisa sumarizar e persiste o resultado.
+    Abre sua própria sessão DB — NÃO reutiliza a sessão da request.
+    """
+    if not isinstance(session_id, UUID):
+        session_id = UUID(str(session_id))
+
+    async with async_session() as db:
+        try:
+            session_info = await chat_repository.get_session_summary(db, session_id)
+            last_summarized = session_info.get("last_summarized_at")
+            unsummarized_count = await chat_repository.count_messages_since(
+                db, session_id, since=last_summarized
+            )
+            if unsummarized_count < 6:
+                return
+            new_messages = await chat_repository.get_messages_before_recent(
+                db, session_id, skip_last=6, since=last_summarized
+            )
+            if not new_messages:
+                return
+            summary = await _generate_summary(
+                new_messages,
+                existing_summary=session_info.get("history_summary"),
+            )
+            await chat_repository.update_history_summary(db, session_id, summary)
+            logger.info(f"Summary atualizado para sessão {session_id}")
+        except Exception as e:
+            logger.error(f"Erro ao atualizar summary da sessão {session_id}: {e}")
+
+
 @router.post("/ask", response_model=ChatResponse)
 async def ask_question(
     request: ChatRequest,
+    background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -77,6 +163,14 @@ async def ask_question(
     else:
         title = question[:80] + ("…" if len(question) > 80 else "")
         session_id = await chat_repository.create_session(db, user.id, title)
+
+    # Buscar histórico ANTES de inserir a mensagem atual
+    history_messages = []
+    history_summary = None
+    if request.session_id:
+        history_messages = await chat_repository.get_recent_messages(db, session_id, limit=6)
+        session_info = await chat_repository.get_session_summary(db, session_id)
+        history_summary = session_info.get("history_summary")
 
     # Persistir mensagem do usuário
     await chat_repository.add_message(db, session_id, "user", question)
@@ -108,6 +202,7 @@ async def ask_question(
             )
             for c in cached["citations"]
         ] if cached["citations"] else []
+        background_tasks.add_task(_maybe_update_summary, session_id)
         return ChatResponse(
             answer=cached["answer"],
             citations=cached_citations,
@@ -120,7 +215,8 @@ async def ask_question(
         )
 
     # RAG pipeline
-    rewritten = await rewrite_query(question)
+    conversation_context = _build_conversation_context(history_messages, history_summary)
+    rewritten = await rewrite_query(question, conversation_context=conversation_context)
     logger.info(
         f"Query reescrita: '{rewritten.query_en}' "
         f"(tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint})"
@@ -142,6 +238,8 @@ async def ask_question(
         question=question,
         query_rewritten=rewritten.query_en,
         search_results=results,
+        history_messages=history_messages,
+        history_summary=history_summary,
     )
 
     citations = [
@@ -170,6 +268,7 @@ async def ask_question(
         citations=citations_json, metadata=metadata_json,
     )
 
+    background_tasks.add_task(_maybe_update_summary, session_id)
     return ChatResponse(
         answer=rag_response.answer,
         citations=citations,

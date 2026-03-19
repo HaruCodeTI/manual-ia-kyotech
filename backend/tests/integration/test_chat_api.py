@@ -55,6 +55,7 @@ async def test_ask_creates_new_session(async_client):
         patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
         patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
     ):
         resp = await async_client.post(
             "/api/v1/chat/ask",
@@ -81,6 +82,9 @@ async def test_ask_with_existing_session(async_client):
         patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
         patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock) as mock_create,
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
+        patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=[]),
+        patch("app.api.chat.chat_repository.get_session_summary", new_callable=AsyncMock, return_value={"history_summary": None, "last_summarized_at": None}),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
     ):
         resp = await async_client.post(
             "/api/v1/chat/ask",
@@ -107,6 +111,7 @@ async def test_ask_with_equipment_filter(async_client):
         patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
         patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
     ):
         resp = await async_client.post(
             "/api/v1/chat/ask",
@@ -136,3 +141,80 @@ async def test_get_pdf_url(async_client):
     data = resp.json()
     assert "#page=5" in data["url"]
     assert data["url"].startswith(fake_url)
+
+
+@pytest.mark.anyio
+async def test_ask_second_message_fetches_history(async_client):
+    """Segunda pergunta na mesma sessão deve buscar histórico."""
+    session_id = uuid4()
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
+        patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=[]) as mock_history,
+        patch("app.api.chat.chat_repository.get_session_summary", new_callable=AsyncMock, return_value={"history_summary": None, "last_summarized_at": None}),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        resp = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": "E o procedimento?", "session_id": str(session_id)},
+        )
+
+    assert resp.status_code == 200
+    mock_history.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_ask_first_message_no_history_fetch(async_client):
+    """Primeira pergunta (sem session_id) não busca histórico."""
+    session_id = uuid4()
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()),
+        patch("app.api.chat.chat_repository.create_session", new_callable=AsyncMock, return_value=session_id),
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
+        patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=[]) as mock_history,
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        resp = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": "Como trocar o rolo?"},
+        )
+
+    assert resp.status_code == 200
+    mock_history.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_ask_passes_history_to_generate_response(async_client):
+    """Com histórico, generate_response deve receber history_messages."""
+    session_id = uuid4()
+    history = [
+        {"role": "user", "content": "Frontier-780"},
+        {"role": "assistant", "content": "Sim, tenho informações."},
+    ]
+
+    with (
+        patch("app.api.chat.get_cached_response", new_callable=AsyncMock, return_value=None),
+        patch("app.api.chat.rewrite_query", new_callable=AsyncMock, return_value=_make_rewritten()),
+        patch("app.api.chat.hybrid_search", new_callable=AsyncMock, return_value=[]),
+        patch("app.api.chat.generate_response", new_callable=AsyncMock, return_value=_make_rag_response()) as mock_gen,
+        patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
+        patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=history),
+        patch("app.api.chat.chat_repository.get_session_summary", new_callable=AsyncMock, return_value={"history_summary": None, "last_summarized_at": None}),
+        patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
+    ):
+        resp = await async_client.post(
+            "/api/v1/chat/ask",
+            json={"question": "E a manutenção?", "session_id": str(session_id)},
+        )
+
+    assert resp.status_code == 200
+    call_kwargs = mock_gen.call_args.kwargs
+    assert call_kwargs.get("history_messages") == history
