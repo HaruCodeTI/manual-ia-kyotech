@@ -85,6 +85,7 @@ export function ChatWindow() {
 
       const assistantMsg: Message = {
         id: loadingMsg.id,
+        message_id: data.message_id,
         role: "assistant",
         content: data.answer,
         citations: data.citations,

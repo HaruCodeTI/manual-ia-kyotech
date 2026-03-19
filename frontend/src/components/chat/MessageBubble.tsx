@@ -3,6 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import type { Message, Citation } from "@/types";
 import { CitationBadge } from "./CitationBadge";
+import { FeedbackWidget } from "./FeedbackWidget";
 import { cn } from "@/lib/utils";
 import { User, Bot } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
@@ -159,6 +160,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               </div>
             </div>
           )}
+
+        {/* Feedback — apenas em respostas do assistente com message_id */}
+        {!isUser && !message.isLoading && message.message_id && (
+          <div className="mt-2 flex justify-end">
+            <FeedbackWidget messageId={message.message_id} />
+          </div>
+        )}
       </div>
     </div>
   );
