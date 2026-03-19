@@ -175,3 +175,46 @@ class TestRewriteQuery:
         result = await rewrite_query("pergunta qualquer")
         assert result.needs_clarification is False
         assert result.clarification_question is None
+
+
+class TestIsComparisonQuery:
+    @pytest.mark.asyncio
+    async def test_comparison_query_detected(self, _patch_openai_client):
+        payload = {
+            "query_en": "What changed in the Frontier 780 manual?",
+            "doc_type": "manual",
+            "equipment_hint": "Frontier 780",
+            "needs_clarification": False,
+            "clarification_question": None,
+            "is_comparison_query": True,
+        }
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response(json.dumps(payload))
+        )
+        result = await rewrite_query("O que mudou no manual do Frontier 780?")
+        assert result.is_comparison_query is True
+
+    @pytest.mark.asyncio
+    async def test_normal_query_not_comparison(self, _patch_openai_client):
+        payload = {
+            "query_en": "How to replace pressure roller",
+            "doc_type": "manual",
+            "equipment_hint": None,
+            "needs_clarification": False,
+            "clarification_question": None,
+        }
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response(json.dumps(payload))
+        )
+        result = await rewrite_query("Como trocar o rolo de pressão?")
+        assert result.is_comparison_query is False  # default
+
+    @pytest.mark.asyncio
+    async def test_is_comparison_query_defaults_false_on_json_without_field(self, _patch_openai_client):
+        # JSON sem o campo → default False
+        payload = {"query_en": "query", "doc_type": None, "equipment_hint": None}
+        _patch_openai_client.chat.completions.create = AsyncMock(
+            return_value=_make_chat_response(json.dumps(payload))
+        )
+        result = await rewrite_query("pergunta qualquer")
+        assert result.is_comparison_query is False

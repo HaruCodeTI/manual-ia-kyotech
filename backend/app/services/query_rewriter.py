@@ -39,9 +39,14 @@ Rules:
 7. If needs_clarification is true, write a short clarification question in Brazilian Portuguese.
    Be specific: ask for the missing information (equipment model, error code, symptom details).
    Keep it under 20 words. Example: "Para qual equipamento você está buscando essa informação?"
+8. Determine if this is a version comparison query.
+   Set is_comparison_query to true if the technician asks to compare versions,
+   asks what changed between versions, asks about updates or differences in a document.
+   Keywords: "o que mudou", "compara", "diferença entre versões", "versão mais nova",
+   "atualização do manual", "nova versão", "changed", "what's new".
 
 Respond ONLY with this JSON format, no markdown:
-{"query_en": "...", "doc_type": "manual" or "informativo" or "both", "equipment_hint": "model name or null", "needs_clarification": false, "clarification_question": null}"""
+{"query_en": "...", "doc_type": "manual" or "informativo" or "both", "equipment_hint": "model name or null", "needs_clarification": false, "clarification_question": null, "is_comparison_query": false}"""
 
 
 @dataclass
@@ -52,6 +57,7 @@ class RewrittenQuery:
     equipment_hint: Optional[str]
     needs_clarification: bool = False
     clarification_question: Optional[str] = None
+    is_comparison_query: bool = False  # NEW
 
 
 async def rewrite_query(
@@ -113,6 +119,7 @@ async def rewrite_query(
             equipment_hint=equipment,
             needs_clarification=parsed.get("needs_clarification", False),
             clarification_question=parsed.get("clarification_question"),
+            is_comparison_query=parsed.get("is_comparison_query", False),  # NEW
         )
     except (json.JSONDecodeError, KeyError) as e:
         logger.warning(f"Falha no parse do rewrite, usando query original: {e}")
