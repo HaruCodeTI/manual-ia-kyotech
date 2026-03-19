@@ -266,7 +266,7 @@ async def test_clarification_from_weak_score(async_client):
     from datetime import date as dt
 
     weak_result = SearchResult(
-        chunk_id="c1", content="texto", page_number=1, similarity=0.3,
+        chunk_id="c1", content="texto", page_number=1, similarity=0.2,
         document_id="d1", doc_type="manual", equipment_key="equip-a",
         published_date=dt(2024, 1, 1), source_filename="f.pdf",
         storage_path="container/blob", search_type="vector",

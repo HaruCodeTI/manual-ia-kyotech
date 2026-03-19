@@ -24,7 +24,7 @@ from app.services.semantic_cache import get_cached_response
 
 logger = logging.getLogger(__name__)
 
-CLARIFICATION_THRESHOLD = 0.45
+CLARIFICATION_THRESHOLD = 0.25
 
 router = APIRouter(prefix="/chat", tags=["Chat RAG"])
 
