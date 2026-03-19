@@ -31,6 +31,7 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
     setShowDetail(false);
 
     const versionId = citation.document_version_id;
+    if (!versionId) return;
 
     openViewer({
       versionId,
