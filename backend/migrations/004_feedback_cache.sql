@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS message_feedback (
     id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     message_id  UUID NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
-    rating      VARCHAR(10) NOT NULL CHECK (rating IN ('thumbs_up', 'thumbs_down')),
+    rating      VARCHAR(12) NOT NULL CHECK (rating IN ('thumbs_up', 'thumbs_down')),
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (message_id)  -- um feedback por mensagem (UNIQUE já cria índice B-tree)
 );
