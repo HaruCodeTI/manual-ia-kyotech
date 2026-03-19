@@ -20,6 +20,11 @@ from app.services.query_rewriter import rewrite_query
 from app.services.diagnostic_analyzer import decompose_problems, is_diagnostic_query
 from app.services.search import hybrid_search, SearchResult
 from app.services.generator import generate_response, Citation, build_clarification_from_weak_results
+from app.services.version_comparator import (
+    compare_versions,
+    detect_multi_version,
+    group_chunks_by_version,
+)
 from app.services.storage import generate_signed_url
 from app.services import chat_repository
 from app.services.semantic_cache import get_cached_response
@@ -181,11 +186,22 @@ async def ask_question(
     # Persistir mensagem do usuário
     await chat_repository.add_message(db, session_id, "user", question)
 
-    # Verificar semantic cache (respostas aprovadas anteriormente)
-    cached = await get_cached_response(db, question)
+    # RAG pipeline
+    conversation_context = _build_conversation_context(history_messages, history_summary)
+    rewritten = await rewrite_query(question, conversation_context=conversation_context)
+    logger.info(
+        f"Query reescrita: '{rewritten.query_en}' "
+        f"(tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint}, "
+        f"clarification: {rewritten.needs_clarification}, "
+        f"comparison: {rewritten.is_comparison_query})"
+    )
+
+    # Verificar semantic cache — bypass para queries de comparação (diff muda com novas versões)
+    cached = None
+    if not rewritten.is_comparison_query:
+        cached = await get_cached_response(db, question)
     if cached:
         logger.info(f"[{user.id}] Cache HIT — retornando resposta cacheada")
-        # Persistir mensagem do assistente (cacheada)
         cached_metadata = {
             "query_rewritten": cached["query_rewritten"],
             "total_sources": len(cached["citations"]),
@@ -219,15 +235,6 @@ async def ask_question(
             session_id=str(session_id),
             message_id=str(assistant_msg_id),
         )
-
-    # RAG pipeline
-    conversation_context = _build_conversation_context(history_messages, history_summary)
-    rewritten = await rewrite_query(question, conversation_context=conversation_context)
-    logger.info(
-        f"Query reescrita: '{rewritten.query_en}' "
-        f"(tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint}, "
-        f"clarification: {rewritten.needs_clarification})"
-    )
 
     # Ponto de saída 1: rewriter detectou ambiguidade
     if rewritten.needs_clarification and rewritten.clarification_question:
@@ -282,6 +289,7 @@ async def ask_question(
                 limit=8,
                 doc_type=rewritten.doc_type,
                 equipment_key=equipment_filter,
+                include_all_versions=rewritten.is_comparison_query,
             )
     except Exception as exc:
         logger.warning(f"Falha no pipeline diagnóstico, usando pipeline normal: {exc}")
@@ -318,6 +326,20 @@ async def ask_question(
             needs_clarification=True,
         )
 
+    # Pipeline de comparação de versões (opcional — fallback se falhar)
+    version_diff = None
+    try:
+        if rewritten.is_comparison_query and detect_multi_version(results):
+            grouped = group_chunks_by_version(results)
+            version_diff = await compare_versions(grouped)
+            logger.info(
+                f"Version diff: {version_diff.version_old} → {version_diff.version_new} | "
+                f"has_changes={version_diff.has_changes} | items={len(version_diff.diff_items)}"
+            )
+    except Exception as exc:
+        logger.warning(f"Comparação de versões falhou, seguindo sem diff: {exc}")
+        version_diff = None
+
     rag_response = await generate_response(
         question=question,
         query_rewritten=rewritten.query_en,
@@ -325,6 +347,8 @@ async def ask_question(
         history_messages=history_messages,
         history_summary=history_summary,
         diagnostic_mode=diagnostic_mode,
+        version_diff=version_diff,
+        is_comparison_query=rewritten.is_comparison_query,
     )
 
     citations = [
