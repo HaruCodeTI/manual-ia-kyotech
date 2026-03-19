@@ -110,6 +110,8 @@ async def compare_versions(
     Raises: json.JSONDecodeError, openai.APIError
     """
     sorted_dates = sorted(grouped.keys())
+    if len(sorted_dates) < 2:
+        raise ValueError(f"compare_versions requires at least 2 versions, got {len(sorted_dates)}")
     version_old = sorted_dates[0]
     version_new = sorted_dates[-1]
 
@@ -132,7 +134,10 @@ async def compare_versions(
         response_format={"type": "json_object"},
     )
 
-    raw = response.choices[0].message.content.strip()
+    content = response.choices[0].message.content
+    if content is None:
+        raise ValueError("LLM returned empty content for version diff")
+    raw = content.strip()
     logger.info(f"Version diff: {version_old} → {version_new} | raw: {raw[:200]}")
 
     parsed = json.loads(raw)  # Raises json.JSONDecodeError se inválido
