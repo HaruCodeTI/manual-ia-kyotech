@@ -381,6 +381,25 @@ export function BulkUploadForm() {
             </>
           )}
 
+          {phase === "done" && (
+            <div className="flex items-center gap-3 rounded-lg border p-3"
+              style={{ borderColor: errorCount === 0 ? "rgb(34 197 94)" : "rgb(234 179 8)" }}>
+              {errorCount === 0 ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+              ) : (
+                <AlertCircle className="h-5 w-5 shrink-0 text-yellow-500" />
+              )}
+              <p className="flex-1 text-sm font-medium">
+                {successCount} de {fileStates.length} concluído
+                {fileStates.length > 1 ? "s" : ""} com sucesso
+                {errorCount > 0 && ` · ${errorCount} com erro`}
+              </p>
+              <Button size="sm" variant="outline" onClick={handleReset}>
+                Novo upload
+              </Button>
+            </div>
+          )}
+
           {(phase === "uploading" || phase === "done") && (
             <div className="space-y-2">
               {fileStates.map((s) => (
@@ -390,36 +409,6 @@ export function BulkUploadForm() {
           )}
         </CardContent>
       </Card>
-
-      {phase === "done" && (
-        <Card
-          className={errorCount === 0 ? "border-green-500" : "border-yellow-500"}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              {errorCount === 0 ? (
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
-              ) : (
-                <AlertCircle className="h-5 w-5 shrink-0 text-yellow-600" />
-              )}
-              <div className="flex-1 space-y-3">
-                <p className="text-sm font-medium">
-                  {successCount} de {fileStates.length} concluído
-                  {fileStates.length > 1 ? "s" : ""} com sucesso
-                  {errorCount > 0 && ` · ${errorCount} com erro`}
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleReset}
-                >
-                  Novo upload
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
