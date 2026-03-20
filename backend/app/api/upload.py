@@ -35,6 +35,14 @@ class StatsResponse(BaseModel):
     documents: int
     versions: int
     chunks: int
+    docs_without_chunks: int  # novo
+
+
+class UsageStatsResponse(BaseModel):
+    total_sessions: int
+    total_messages: int
+    thumbs_up: int
+    thumbs_down: int
 
 
 @router.post("/document", response_model=UploadResponse)
@@ -109,3 +117,12 @@ async def get_stats(
 ):
     stats = await repository.get_ingestion_stats(db)
     return StatsResponse(**stats)
+
+
+@router.get("/stats/usage", response_model=UsageStatsResponse)
+async def get_usage_stats(
+    _user: CurrentUser = Depends(require_role("Admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    stats = await repository.get_usage_stats(db)
+    return UsageStatsResponse(**stats)

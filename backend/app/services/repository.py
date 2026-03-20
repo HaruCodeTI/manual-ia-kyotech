@@ -222,7 +222,13 @@ async def get_ingestion_stats(db: AsyncSession) -> Dict[str, int]:
             (SELECT COUNT(*) FROM equipments) AS total_equipments,
             (SELECT COUNT(*) FROM documents) AS total_documents,
             (SELECT COUNT(*) FROM document_versions) AS total_versions,
-            (SELECT COUNT(*) FROM chunks) AS total_chunks
+            (SELECT COUNT(*) FROM chunks) AS total_chunks,
+            (
+                SELECT COUNT(*) FROM document_versions dv
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM chunks c WHERE c.document_version_id = dv.id
+                )
+            ) AS docs_without_chunks
     """))
     row = result.fetchone()
     return {
@@ -230,4 +236,22 @@ async def get_ingestion_stats(db: AsyncSession) -> Dict[str, int]:
         "documents": row[1],
         "versions": row[2],
         "chunks": row[3],
+        "docs_without_chunks": row[4],
+    }
+
+
+async def get_usage_stats(db: AsyncSession) -> Dict[str, int]:
+    result = await db.execute(text("""
+        SELECT
+            (SELECT COUNT(*) FROM chat_sessions) AS total_sessions,
+            (SELECT COUNT(*) FROM chat_messages WHERE role = 'user') AS total_messages,
+            (SELECT COUNT(*) FROM message_feedback WHERE rating = 'thumbs_up') AS thumbs_up,
+            (SELECT COUNT(*) FROM message_feedback WHERE rating = 'thumbs_down') AS thumbs_down
+    """))
+    row = result.fetchone()
+    return {
+        "total_sessions": row[0],
+        "total_messages": row[1],
+        "thumbs_up": row[2],
+        "thumbs_down": row[3],
     }

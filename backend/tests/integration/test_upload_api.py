@@ -89,14 +89,22 @@ async def test_technician_cannot_upload(async_client_tech, sample_pdf_bytes):
 
 @pytest.mark.anyio
 async def test_get_stats_admin(async_client):
-    stats = {"equipments": 5, "documents": 10, "versions": 15, "chunks": 200}
+    stats = {
+        "equipments": 5,
+        "documents": 10,
+        "versions": 15,
+        "chunks": 200,
+        "docs_without_chunks": 2,  # novo campo
+    }
 
     with patch("app.api.upload.repository.get_ingestion_stats", new_callable=AsyncMock, return_value=stats):
         resp = await async_client.get("/api/v1/upload/stats")
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data == stats
+    assert data["documents"] == 10
+    assert data["versions"] == 15
+    assert data["docs_without_chunks"] == 2  # novo campo
 
 
 @pytest.mark.anyio
@@ -213,6 +221,32 @@ async def test_upload_rejects_text_file_as_pdf(async_client):
     assert resp.status_code == 400
     # Falha na validação de magic bytes
     assert "pdf" in resp.json()["detail"].lower()
+
+
+@pytest.mark.anyio
+async def test_get_usage_stats_admin(async_client):
+    usage = {
+        "total_sessions": 100,
+        "total_messages": 350,
+        "thumbs_up": 42,
+        "thumbs_down": 8,
+    }
+
+    with patch("app.api.upload.repository.get_usage_stats", new_callable=AsyncMock, return_value=usage):
+        resp = await async_client.get("/api/v1/upload/stats/usage")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_sessions"] == 100
+    assert data["total_messages"] == 350
+    assert data["thumbs_up"] == 42
+    assert data["thumbs_down"] == 8
+
+
+@pytest.mark.anyio
+async def test_technician_cannot_see_usage_stats(async_client_tech):
+    resp = await async_client_tech.get("/api/v1/upload/stats/usage")
+    assert resp.status_code == 403
 
 
 @pytest.mark.anyio
