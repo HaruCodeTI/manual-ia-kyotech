@@ -94,17 +94,14 @@ async def test_get_stats_admin(async_client):
         "documents": 10,
         "versions": 15,
         "chunks": 200,
-        "docs_without_chunks": 2,  # novo campo
+        "docs_without_chunks": 2,
     }
 
     with patch("app.api.upload.repository.get_ingestion_stats", new_callable=AsyncMock, return_value=stats):
         resp = await async_client.get("/api/v1/upload/stats")
 
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["documents"] == 10
-    assert data["versions"] == 15
-    assert data["docs_without_chunks"] == 2  # novo campo
+    assert resp.json() == stats
 
 
 @pytest.mark.anyio
