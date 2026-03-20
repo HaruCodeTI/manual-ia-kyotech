@@ -7,7 +7,7 @@ import type { Message, ChatSessionDetail } from "@/types";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { Loader2 } from "lucide-react";
-import Image from "next/image";
+import { Bot } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 
@@ -133,19 +133,13 @@ export function ChatWindow() {
               /* Welcome state */
               <motion.div
                 key="welcome"
-                className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center"
+                className="flex flex-1 flex-col justify-center gap-4 px-4"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0.2 } }}
               >
-                <div>
-                  <div className="mb-2 flex flex-col items-center gap-1 sm:flex-row sm:gap-2 sm:justify-center">
-                    <Image
-                      src="/kyotech-icon.png"
-                      alt="Kyotech"
-                      width={32}
-                      height={32}
-                      priority
-                    />
+                <div className="mx-auto w-full max-w-[600px]">
+                  <div className="mb-1 flex items-center gap-2">
+                    <Bot className="h-5 w-5 text-primary" />
                     <span className="text-sm text-muted-foreground">{greeting}</span>
                   </div>
                   <h2 className="text-xl font-bold sm:text-2xl">
@@ -155,7 +149,7 @@ export function ChatWindow() {
 
                 <motion.div
                   layoutId="chat-input"
-                  className="w-full max-w-[600px] rounded-2xl shadow-lg"
+                  className="mx-auto w-full max-w-[600px] rounded-2xl shadow-lg"
                   style={{ zIndex: 10 }}
                   transition={{ duration: 0.4, ease: "easeInOut" }}
                 >
