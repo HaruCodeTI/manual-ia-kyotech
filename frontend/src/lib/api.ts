@@ -1,4 +1,4 @@
-import type { ChatResponse, UploadResponse, StatsResponse, ChatSession, FeedbackRating } from "@/types";
+import type { ChatResponse, UploadResponse, StatsResponse, UsageStatsResponse, ChatSession, FeedbackRating } from "@/types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -169,6 +169,22 @@ export async function getStats(): Promise<StatsResponse> {
   try {
     res = await fetchWithTimeout(
       `${API_BASE}/api/v1/upload/stats`,
+      { headers: auth },
+      30_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export async function getUsageStats(): Promise<UsageStatsResponse> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/upload/stats/usage`,
       { headers: auth },
       30_000
     );

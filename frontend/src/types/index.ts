@@ -40,6 +40,14 @@ export interface StatsResponse {
   documents: number;
   versions: number;
   chunks: number;
+  docs_without_chunks: number; // novo
+}
+
+export interface UsageStatsResponse {
+  total_sessions: number;
+  total_messages: number;
+  thumbs_up: number;
+  thumbs_down: number;
 }
 
 export interface Message {
