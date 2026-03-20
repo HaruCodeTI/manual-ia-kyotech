@@ -6,13 +6,18 @@ import { useChatContext } from "@/lib/chat-context";
 import type { Message, ChatSessionDetail } from "@/types";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
-import { Bot, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 
 export function ChatWindow() {
   const { activeSessionId, setActiveSessionId } = useChatContext();
+  const { user } = useUser();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -28,6 +33,7 @@ export function ChatWindow() {
   useEffect(() => {
     if (!activeSessionId) {
       setMessages([]);
+      setHasStarted(false);
       sessionIdRef.current = null;
       return;
     }
@@ -38,23 +44,26 @@ export function ChatWindow() {
     getSessionMessages(activeSessionId)
       .then((data: ChatSessionDetail) => {
         sessionIdRef.current = activeSessionId;
-        setMessages(
-          data.messages.map((m) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            citations: m.citations ?? undefined,
-          }))
-        );
+        const mapped = data.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          citations: m.citations ?? undefined,
+        }));
+        setMessages(mapped);
+        setHasStarted(mapped.length > 0);
       })
       .catch(() => {
         setMessages([]);
+        setHasStarted(false);
         setActiveSessionId(null);
       })
       .finally(() => setLoadingSession(false));
   }, [activeSessionId, setActiveSessionId]);
 
   async function handleSend(question: string, equipmentFilter?: string | null) {
+    setHasStarted(true);
+
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: "user",
@@ -108,44 +117,89 @@ export function ChatWindow() {
     }
   }
 
-  if (loadingSession) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const firstName = user?.firstName ?? "";
+  const greeting = firstName ? `Olá, ${firstName}` : "Olá!";
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <Bot className="h-8 w-8 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                Como posso ajudar?
-              </h2>
-              <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                Pergunte sobre manuais e informativos Fujifilm.
-                As respostas incluem citações com links para o PDF na página exata.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mx-auto max-w-3xl space-y-5 py-6">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
-            <div ref={bottomRef} />
-          </div>
-        )}
-      </div>
-      <div className="mx-auto w-full max-w-3xl">
-        <ChatInput onSend={handleSend} disabled={isLoading} />
-      </div>
-    </div>
+    <LayoutGroup>
+      {loadingSession ? (
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="flex h-full flex-col bg-background">
+          <AnimatePresence mode="wait">
+            {!hasStarted ? (
+              /* Welcome state */
+              <motion.div
+                key="welcome"
+                className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.2 } }}
+              >
+                <div>
+                  <div className="mb-2 flex flex-col items-center gap-1 sm:flex-row sm:gap-2 sm:justify-center">
+                    <Image
+                      src="/kyotech-icon.png"
+                      alt="Kyotech"
+                      width={32}
+                      height={32}
+                      priority
+                    />
+                    <span className="text-sm text-muted-foreground">{greeting}</span>
+                  </div>
+                  <h2 className="text-xl font-bold sm:text-2xl">
+                    Por onde começamos?
+                  </h2>
+                </div>
+
+                <motion.div
+                  layoutId="chat-input"
+                  className="w-full max-w-[600px] rounded-2xl shadow-lg"
+                  style={{ zIndex: 10 }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
+                >
+                  <ChatInput
+                    onSend={handleSend}
+                    disabled={isLoading}
+                    variant="welcome"
+                  />
+                </motion.div>
+              </motion.div>
+            ) : (
+              /* Chat state */
+              <motion.div
+                key="chat"
+                className="flex flex-1 flex-col overflow-hidden"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { duration: 0.2 } }}
+              >
+                <div ref={scrollRef} className="flex-1 overflow-y-auto px-4">
+                  <div className="mx-auto max-w-3xl space-y-5 py-6">
+                    {messages.map((msg) => (
+                      <MessageBubble key={msg.id} message={msg} />
+                    ))}
+                    <div ref={bottomRef} />
+                  </div>
+                </div>
+
+                <motion.div
+                  layoutId="chat-input"
+                  className="mx-auto w-full max-w-3xl"
+                  style={{ zIndex: 10 }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
+                >
+                  <ChatInput
+                    onSend={handleSend}
+                    disabled={isLoading}
+                    variant="bottom"
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+    </LayoutGroup>
   );
 }

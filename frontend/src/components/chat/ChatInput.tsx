@@ -8,9 +8,10 @@ import { SendHorizontal } from "lucide-react";
 interface ChatInputProps {
   onSend: (message: string, equipmentFilter?: string | null) => void;
   disabled?: boolean;
+  variant?: "welcome" | "bottom";
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, variant = "bottom" }: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -29,8 +30,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   }
 
+  const containerClass =
+    variant === "welcome"
+      ? "space-y-2 p-4"
+      : "space-y-2 border-t bg-background/80 p-4 backdrop-blur-sm";
+
   return (
-    <div className="space-y-2 border-t bg-background/80 p-4 backdrop-blur-sm">
+    <div className={containerClass}>
       <div className="flex items-end gap-2">
         <Textarea
           ref={textareaRef}
