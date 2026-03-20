@@ -135,7 +135,7 @@ async def test_insert_chunks_raises_on_mismatch(mock_db):
 @pytest.mark.asyncio
 async def test_get_ingestion_stats(mock_db, make_mock_result):
     mock_db.execute = AsyncMock(
-        return_value=make_mock_result(rows=[(5, 10, 15, 200)])
+        return_value=make_mock_result(rows=[(5, 10, 15, 200, 2)])
     )
     stats = await get_ingestion_stats(mock_db)
     assert stats == {
@@ -143,6 +143,7 @@ async def test_get_ingestion_stats(mock_db, make_mock_result):
         "documents": 10,
         "versions": 15,
         "chunks": 200,
+        "docs_without_chunks": 2,
     }
 
 
