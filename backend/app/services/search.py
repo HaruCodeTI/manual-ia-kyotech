@@ -10,7 +10,7 @@ Estratégia:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -31,13 +31,14 @@ class SearchResult:
     similarity: float
     document_id: str
     doc_type: str
-    equipment_key: str
+    equipment_key: Optional[str]
     published_date: date
     source_filename: str
     storage_path: str
     search_type: str  # "vector", "text", or "hybrid"
     document_version_id: str = ""  # ID da versão para o viewer seguro
     quality_score: float = 0.0
+    equipment_mentions: list = field(default_factory=list)
 
 
 async def vector_search(
@@ -86,7 +87,8 @@ async def vector_search(
                 cv.source_filename,
                 cv.storage_path,
                 cv.id AS version_id,
-                c.quality_score
+                c.quality_score,
+                c.equipment_mentions
             FROM chunks c
             JOIN {version_source} cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
@@ -113,6 +115,7 @@ async def vector_search(
             storage_path=row[9],
             document_version_id=str(row[10]),
             quality_score=float(row[11] or 0.0),
+            equipment_mentions=row[12] or [],
             search_type="vector",
         )
         for row in rows
@@ -162,7 +165,8 @@ async def text_search(
                 cv.source_filename,
                 cv.storage_path,
                 cv.id AS version_id,
-                c.quality_score
+                c.quality_score,
+                c.equipment_mentions
             FROM chunks c
             JOIN {version_source} cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
@@ -189,6 +193,7 @@ async def text_search(
             storage_path=row[9],
             document_version_id=str(row[10]),
             quality_score=float(row[11] or 0.0),
+            equipment_mentions=row[12] or [],
             search_type="text",
         )
         for row in rows
@@ -224,8 +229,8 @@ async def hybrid_search(
     """
     # Executa ambas as buscas sem filtros de metadados para não excluir
     # documentos sem doc_type ou equipment_key definidos
-    vector_results = await vector_search(db, query_en, limit=limit, include_all_versions=include_all_versions)
-    text_results = await text_search(db, query_original, limit=limit, include_all_versions=include_all_versions)
+    vector_results = await vector_search(db, query_en, limit=30, include_all_versions=include_all_versions)
+    text_results = await text_search(db, query_original, limit=30, include_all_versions=include_all_versions)
 
     logger.info(
         f"Busca híbrida: {len(vector_results)} vetorial + {len(text_results)} textual"
@@ -251,6 +256,8 @@ async def hybrid_search(
     if equipment_key:
         for chunk_id, result in merged.items():
             if result.equipment_key and result.equipment_key == equipment_key:
+                scores[chunk_id] += EQUIPMENT_BOOST
+            elif equipment_key in (result.equipment_mentions or []):
                 scores[chunk_id] += EQUIPMENT_BOOST
 
     # Boost para documentos do tipo correto

@@ -16,9 +16,11 @@ from app.services.search import SearchResult, vector_search, text_search, hybrid
 def _make_row(chunk_id="c1", content="texto", page=1, similarity=0.9,
               doc_id="d1", doc_type="manual", equip="equip-a",
               pub_date=date(2024, 1, 1), filename="f.pdf",
-              storage="container/blob", version_id="v1", quality_score=0.0):
+              storage="container/blob", version_id="v1", quality_score=0.0,
+              equipment_mentions=None):
     return (chunk_id, content, page, similarity, doc_id, doc_type,
-            equip, pub_date, filename, storage, version_id, quality_score)
+            equip, pub_date, filename, storage, version_id, quality_score,
+            equipment_mentions or [])
 
 
 # ── vector_search ──
@@ -188,3 +190,44 @@ class TestIncludeAllVersions:
         assert mock_v.call_args.kwargs.get("include_all_versions") is True
         mock_t.assert_called_once()
         assert mock_t.call_args.kwargs.get("include_all_versions") is True
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_boosts_equipment_mentions(mock_db, make_mock_result):
+    """Chunk sem equipment_key mas com equipment_mentions recebe boost."""
+    mention_row = _make_row(
+        chunk_id="mention", similarity=0.5, equip=None,
+        equipment_mentions=["ec-720r/l"]
+    )
+    tagged_row = _make_row(
+        chunk_id="tagged", similarity=0.5, equip="ec-720r/l",
+        equipment_mentions=[]
+    )
+    other_row = _make_row(
+        chunk_id="other", similarity=0.5, equip="ec-530",
+        equipment_mentions=[]
+    )
+
+    mock_db.execute = AsyncMock(
+        return_value=make_mock_result(rows=[mention_row, tagged_row, other_row])
+    )
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await hybrid_search(mock_db, "q", "q", equipment_key="ec-720r/l")
+
+    ids_in_order = [r.chunk_id for r in results]
+    assert ids_in_order.index("other") > ids_in_order.index("mention")
+    assert ids_in_order.index("other") > ids_in_order.index("tagged")
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_uses_pool_of_30(mock_db, make_mock_result):
+    """hybrid_search deve passar limit=30 para vector_search e text_search."""
+    mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
+
+    with patch("app.services.search.vector_search", new_callable=AsyncMock, return_value=[]) as mock_v, \
+         patch("app.services.search.text_search", new_callable=AsyncMock, return_value=[]) as mock_t:
+        await hybrid_search(mock_db, "q_en", "q_pt", limit=8)
+
+    assert mock_v.call_args.kwargs.get("limit") == 30
+    assert mock_t.call_args.kwargs.get("limit") == 30
