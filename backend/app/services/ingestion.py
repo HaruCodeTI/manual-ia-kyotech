@@ -104,6 +104,13 @@ async def ingest_document(
 
         logger.info(f"✅ Ingestion completa: {filename} → {len(chunks)} chunks")
 
+        # Passo 7: Detectar equipamentos nos chunks
+        if chunks:
+            from app.services.equipment_detector import detect_mentions_for_version
+            logger.info(f"[7/7] Detectando equipamentos nos chunks")
+            detected = await detect_mentions_for_version(db, str(version_id))
+            logger.info(f"  → {detected} chunks com equipamentos detectados")
+
         # Invalidar cache semântico — novo documento pode melhorar respostas futuras
         # try/except isolado: falha no cache não deve retornar erro de ingestion
         try:
