@@ -254,10 +254,13 @@ async def hybrid_search(
 
     # Boost para documentos do equipamento mencionado
     if equipment_key:
+        equipment_key_lower = equipment_key.lower()
         for chunk_id, result in merged.items():
             if result.equipment_key and result.equipment_key == equipment_key:
                 scores[chunk_id] += EQUIPMENT_BOOST
             elif equipment_key in (result.equipment_mentions or []):
+                scores[chunk_id] += EQUIPMENT_BOOST
+            elif equipment_key_lower in result.content.lower():
                 scores[chunk_id] += EQUIPMENT_BOOST
 
     # Boost para documentos do tipo correto

@@ -221,6 +221,31 @@ async def test_hybrid_search_boosts_equipment_mentions(mock_db, make_mock_result
 
 
 @pytest.mark.asyncio
+async def test_hybrid_search_boosts_content_mention(mock_db, make_mock_result):
+    """Chunk sem equipment_key nem equipment_mentions, mas com o equipment_key no conteúdo, recebe boost."""
+    content_row = _make_row(
+        chunk_id="content", similarity=0.5, equip=None,
+        content="Repair manual for EC-720R/L endoscope light guide lens adhesive.",
+        equipment_mentions=[]
+    )
+    other_row = _make_row(
+        chunk_id="other", similarity=0.5, equip=None,
+        content="Unrelated content about something else.",
+        equipment_mentions=[]
+    )
+
+    mock_db.execute = AsyncMock(
+        return_value=make_mock_result(rows=[content_row, other_row])
+    )
+
+    with patch("app.services.search.generate_single_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536):
+        results = await hybrid_search(mock_db, "q", "q", equipment_key="ec-720r/l")
+
+    ids_in_order = [r.chunk_id for r in results]
+    assert ids_in_order.index("other") > ids_in_order.index("content")
+
+
+@pytest.mark.asyncio
 async def test_hybrid_search_uses_pool_of_30(mock_db, make_mock_result):
     """hybrid_search deve passar limit=30 para vector_search e text_search."""
     mock_db.execute = AsyncMock(return_value=make_mock_result(rows=[]))
