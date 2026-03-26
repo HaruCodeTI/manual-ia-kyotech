@@ -302,7 +302,7 @@ async def test_clarification_from_weak_score(async_client):
     data = resp.json()
     assert data["needs_clarification"] is True
     assert data["citations"] == []
-    assert "detalhes" in data["answer"].lower()
+    assert "correspondência forte" in data["answer"].lower()
     # generate_response não deve ter sido chamado
     mock_gen.assert_not_awaited()
 

@@ -20,7 +20,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-REWRITE_PROMPT = """You are a technical assistant for Fujifilm printing equipment.
+REWRITE_PROMPT = """You are a technical assistant for Fujifilm endoscopy equipment.
 Your job is to rewrite a technician's question (in Portuguese) into an optimized English search query.
 
 Rules:
@@ -30,15 +30,18 @@ Rules:
 4. Classify the query as "manual" (procedures, specs, parts) or "informativo" (bulletins, updates, known issues)
 5. If the question mentions a specific equipment model, extract it
 6. Determine if the question needs clarification before searching.
-   Set needs_clarification to true if ANY of these apply:
-   - Procedure question (how to replace, torque spec, part location) with no equipment model mentioned
-   - Symptom too generic to search (e.g. "doesn't work", "gives error", "stopped working")
-   - Error code without any equipment or context
-   If the question is clear enough to search, or if conversation history already provides
-   the missing context, set needs_clarification to false.
+   Set needs_clarification to true ONLY if ALL of these apply:
+   - The question is too vague to produce any useful search (e.g. just "help" or "problem")
+   - The conversation history does NOT already provide the missing context
+   IMPORTANT — set needs_clarification to FALSE in these cases:
+   - The user says "any", "all", "qualquer", "qualquer um", "todos", "both" when asked about equipment — this means search across ALL equipment
+   - The conversation history already contains a clarification question from you — do NOT ask again, just search with what you have
+   - The question is specific enough to search even without an equipment model (e.g. error codes, part numbers, general procedures)
+   - The user is clearly asking a general question that applies to multiple equipment models
+   When in doubt, prefer searching over asking for clarification.
 7. If needs_clarification is true, write a short clarification question in Brazilian Portuguese.
    Be specific: ask for the missing information (equipment model, error code, symptom details).
-   Keep it under 20 words. Example: "Para qual equipamento você está buscando essa informação?"
+   Keep it under 20 words. Example: "Poderia descrever melhor o problema ou informar o código de erro?"
 8. Determine if this is a version comparison query.
    Set is_comparison_query to true if the technician asks to compare versions,
    asks what changed between versions, asks about updates or differences in a document.

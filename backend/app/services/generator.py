@@ -108,9 +108,12 @@ def build_clarification_from_weak_results(question: str) -> str:
     Determinístico — não chama LLM.
     """
     return (
-        "Não encontrei informações suficientemente precisas para responder com confiança. "
-        "Poderia fornecer mais detalhes? Por exemplo: qual equipamento, "
-        "código de erro exibido, ou em qual etapa do processo ocorre o problema?"
+        "Não encontrei informações com correspondência forte nos documentos carregados. "
+        "Isso pode acontecer porque:\n"
+        "• O manual ou informativo relacionado ainda não foi carregado no sistema\n"
+        "• A informação pode estar descrita com termos diferentes nos documentos (muitos são em inglês)\n\n"
+        "**Sugestões:** tente usar termos em inglês, códigos de peça/erro específicos, "
+        "ou o nome exato do equipamento/procedimento como aparece no manual."
     )
 
 
@@ -167,8 +170,12 @@ async def generate_response(
     """
     if not search_results:
         return RAGResponse(
-            answer="Não encontrei informações relevantes nos documentos disponíveis. "
-                   "Tente reformular a pergunta ou verifique se o documento foi carregado no sistema.",
+            answer="Não encontrei nenhuma informação relacionada nos documentos carregados. "
+                   "Possíveis motivos:\n"
+                   "• O manual ou informativo sobre esse assunto ainda não foi carregado no sistema\n"
+                   "• Os termos usados podem estar diferentes nos documentos (muitos são em inglês)\n\n"
+                   "**Sugestões:** tente reformular usando termos em inglês, códigos específicos "
+                   "(peça, erro, modelo), ou pergunte ao administrador se o documento já foi carregado.",
             citations=[],
             query_original=question,
             query_rewritten=query_rewritten,

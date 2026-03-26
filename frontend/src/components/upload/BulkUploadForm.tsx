@@ -7,7 +7,6 @@ import { FileProgressItem } from "./FileProgressItem";
 import type { FileUploadState, FileStatus } from "./FileProgressItem";
 import type { UploadResponse } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -75,7 +74,6 @@ type Phase = "select" | "uploading" | "done";
 
 interface FieldErrors {
   files?: string;
-  equipment_key?: string;
 }
 
 function validateFiles(files: File[]): string | null {
@@ -102,7 +100,6 @@ export function BulkUploadForm() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileStates, setFileStates] = useState<FileUploadState[]>(initialFiles);
   const [docType, setDocType] = useState("");
-  const [equipmentKey, setEquipmentKey] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isDragging, setIsDragging] = useState(false);
 
@@ -117,8 +114,7 @@ export function BulkUploadForm() {
   // Refs para estado mutável que não dispara re-render
   const queueRef = useRef<FileUploadState[]>([]);
   const activeCountRef = useRef(0);
-  // Captura os valores de metadata no momento do submit (estáveis durante upload)
-  const equipmentKeyRef = useRef("");
+  // Captura o valor de metadata no momento do submit (estável durante upload)
   const docTypeRef = useRef("");
 
   const updateFileState = useCallback(
@@ -151,8 +147,6 @@ export function BulkUploadForm() {
 
       const fd = new FormData();
       fd.append("file", state.file);
-      if (equipmentKeyRef.current)
-        fd.append("equipment_key", equipmentKeyRef.current);
       if (docTypeRef.current) fd.append("doc_type", docTypeRef.current);
 
       try {
@@ -212,18 +206,7 @@ export function BulkUploadForm() {
       return;
     }
 
-    if (
-      equipmentKey.trim() &&
-      !/^[a-z0-9][a-z0-9-]*$/.test(equipmentKey.trim())
-    ) {
-      setFieldErrors({
-        equipment_key: "Use apenas letras minúsculas, números e hífens.",
-      });
-      return;
-    }
-
-    // Capturar metadata em refs antes de iniciar (imutável durante upload)
-    equipmentKeyRef.current = equipmentKey.toLowerCase().trim();
+    // Capturar metadata em ref antes de iniciar (imutável durante upload)
     docTypeRef.current = docType;
 
     const states: FileUploadState[] = selectedFiles.map((file) => ({
@@ -253,7 +236,6 @@ export function BulkUploadForm() {
     setSelectedFiles([]);
     setFileStates([]);
     setDocType("");
-    setEquipmentKey("");
     setFieldErrors({});
     queueRef.current = [];
     activeCountRef.current = 0;
@@ -321,36 +303,7 @@ export function BulkUploadForm() {
                 )}
               </div>
 
-              {/* Metadata opcionais */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Equipamento{" "}
-                  <span className="text-muted-foreground">(opcional)</span>
-                </label>
-                <Input
-                  placeholder="ex: frontier-780"
-                  value={equipmentKey}
-                  className={cn(
-                    fieldErrors.equipment_key && "border-destructive",
-                  )}
-                  onChange={(e) => {
-                    setEquipmentKey(e.target.value);
-                    setFieldErrors((p) => ({
-                      ...p,
-                      equipment_key: undefined,
-                    }));
-                  }}
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Letras minúsculas, números e hífens
-                </p>
-                {fieldErrors.equipment_key && (
-                  <p className="mt-1 text-xs text-destructive">
-                    {fieldErrors.equipment_key}
-                  </p>
-                )}
-              </div>
-
+              {/* Metadata opcional */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium">
                   Tipo de documento{" "}
