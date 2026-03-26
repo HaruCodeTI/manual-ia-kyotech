@@ -85,6 +85,7 @@ async def test_ask_with_existing_session(async_client):
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
         patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=[]),
         patch("app.api.chat.chat_repository.get_session_summary", new_callable=AsyncMock, return_value={"history_summary": None, "last_summarized_at": None}),
+        patch("app.api.chat.chat_repository.get_session_with_messages", new_callable=AsyncMock, return_value={"id": str(session_id)}),
         patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
     ):
         resp = await async_client.post(
@@ -141,6 +142,7 @@ async def test_ask_second_message_fetches_history(async_client):
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
         patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=[]) as mock_history,
         patch("app.api.chat.chat_repository.get_session_summary", new_callable=AsyncMock, return_value={"history_summary": None, "last_summarized_at": None}),
+        patch("app.api.chat.chat_repository.get_session_with_messages", new_callable=AsyncMock, return_value={"id": str(session_id)}),
         patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
     ):
         resp = await async_client.post(
@@ -177,6 +179,30 @@ async def test_ask_first_message_no_history_fetch(async_client):
 
 
 @pytest.mark.anyio
+async def test_ask_with_foreign_session_returns_404(async_client):
+    """session_id de outro usuário deve retornar 404."""
+    foreign_session_id = str(uuid4())
+
+    with (
+        patch(
+            "app.api.chat.chat_repository.get_session_with_messages",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+    ):
+        resp = await async_client.post(
+            "/api/v1/chat/ask",
+            json={
+                "question": "Pergunta qualquer",
+                "session_id": foreign_session_id,
+            },
+        )
+
+    assert resp.status_code == 404
+    assert "Sessão não encontrada" in resp.json()["detail"]
+
+
+@pytest.mark.anyio
 async def test_ask_passes_history_to_generate_response(async_client):
     """Com histórico, generate_response deve receber history_messages."""
     session_id = uuid4()
@@ -193,6 +219,7 @@ async def test_ask_passes_history_to_generate_response(async_client):
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
         patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=history),
         patch("app.api.chat.chat_repository.get_session_summary", new_callable=AsyncMock, return_value={"history_summary": None, "last_summarized_at": None}),
+        patch("app.api.chat.chat_repository.get_session_with_messages", new_callable=AsyncMock, return_value={"id": str(session_id)}),
         patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
     ):
         resp = await async_client.post(
@@ -333,6 +360,7 @@ async def test_clarification_answer_proceeds_normally(async_client):
         patch("app.api.chat.chat_repository.add_message", new_callable=AsyncMock),
         patch("app.api.chat.chat_repository.get_recent_messages", new_callable=AsyncMock, return_value=history_with_clarification),
         patch("app.api.chat.chat_repository.get_session_summary", new_callable=AsyncMock, return_value={"history_summary": None, "last_summarized_at": None}),
+        patch("app.api.chat.chat_repository.get_session_with_messages", new_callable=AsyncMock, return_value={"id": str(session_id)}),
         patch("app.api.chat._maybe_update_summary", new_callable=AsyncMock),
     ):
         resp = await async_client.post(

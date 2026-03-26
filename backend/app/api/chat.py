@@ -172,6 +172,9 @@ async def ask_question(
     # Resolver sessão
     if body.session_id:
         session_id = UUID(body.session_id)
+        owned = await chat_repository.get_session_with_messages(db, session_id, user.id)
+        if not owned:
+            raise HTTPException(status_code=404, detail="Sessão não encontrada.")
     else:
         title = question[:80] + ("…" if len(question) > 80 else "")
         session_id = await chat_repository.create_session(db, user.id, title)
