@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     azure_storage_container_originals: str = "pdfs-originais"
     azure_storage_container_processed: str = "pdfs-processados"
 
+    azure_document_intelligence_endpoint: str = ""
+    azure_document_intelligence_key: str = ""
+
     clerk_jwks_url: str = ""
     clerk_jwt_audience: Optional[str] = None
 

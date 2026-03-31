@@ -28,6 +28,7 @@ class UploadResponse(BaseModel):
     total_pages: int = 0
     total_chunks: int = 0
     was_duplicate: bool = False
+    retryable: bool = False
 
 
 class StatsResponse(BaseModel):
@@ -89,7 +90,8 @@ async def upload_document(
     )
 
     if not result.success:
-        raise HTTPException(status_code=422, detail=result.message)
+        status_code = 503 if result.retryable else 422
+        raise HTTPException(status_code=status_code, detail=result.message)
 
     return UploadResponse(
         success=result.success,
@@ -99,6 +101,7 @@ async def upload_document(
         total_pages=result.total_pages,
         total_chunks=result.total_chunks,
         was_duplicate=result.was_duplicate,
+        retryable=result.retryable,
     )
 
 

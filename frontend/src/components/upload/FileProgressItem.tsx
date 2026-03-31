@@ -1,7 +1,7 @@
 // frontend/src/components/upload/FileProgressItem.tsx
 "use client";
 
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UploadResponse } from "@/types";
 
@@ -47,9 +47,10 @@ function truncateFilename(name: string, maxLen = 40): string {
 
 interface Props {
   state: FileUploadState;
+  onRetry?: () => void;
 }
 
-export function FileProgressItem({ state }: Props) {
+export function FileProgressItem({ state, onRetry }: Props) {
   const { file, status, progress, result, error } = state;
 
   return (
@@ -98,7 +99,18 @@ export function FileProgressItem({ state }: Props) {
       )}
 
       {status === "erro" && error && (
-        <p className="ml-8 text-xs text-destructive">{error}</p>
+        <div className="ml-8 flex items-center gap-2">
+          <p className="flex-1 text-xs text-destructive">{error}</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
+            >
+              <RotateCw className="h-3 w-3" />
+              Tentar novamente
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
