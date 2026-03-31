@@ -46,7 +46,7 @@ async def ingest_document(
 
         # Passo 1: Extrair texto
         logger.info(f"[1/6] Extraindo texto: {filename}")
-        extraction = extract_text_from_pdf(file_bytes, filename)
+        extraction = await extract_text_from_pdf(file_bytes, filename)
         logger.info(f"  → {extraction.total_pages} páginas, {len(extraction.pages)} com texto")
 
         # Passo 2: Garantir equipamento (apenas se fornecido)
