@@ -33,6 +33,7 @@ export interface UploadResponse {
   total_pages: number;
   total_chunks: number;
   was_duplicate: boolean;
+  retryable?: boolean;
 }
 
 export interface StatsResponse {

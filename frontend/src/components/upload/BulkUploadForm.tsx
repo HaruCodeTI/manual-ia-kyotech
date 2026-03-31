@@ -116,6 +116,7 @@ export function BulkUploadForm() {
   const activeCountRef = useRef(0);
   // Captura o valor de metadata no momento do submit (estável durante upload)
   const docTypeRef = useRef("");
+  const retryCountRef = useRef<Record<string, number>>({});
 
   const updateFileState = useCallback(
     (id: string, patch: Partial<FileUploadState>) => {
@@ -158,11 +159,21 @@ export function BulkUploadForm() {
         );
         updateFileState(state.id, { status: "concluído", result });
       } catch (err) {
-        updateFileState(state.id, {
-          status: "erro",
-          error:
-            err instanceof Error ? err.message : "Erro desconhecido.",
-        });
+        const msg = err instanceof Error ? err.message : "Erro desconhecido.";
+        const isRetryable = msg.includes("503") || msg.includes("indisponível");
+        const retries = retryCountRef.current[state.id] ?? 0;
+
+        if (isRetryable && retries < 1) {
+          // Auto-retry once for transient errors
+          retryCountRef.current[state.id] = retries + 1;
+          updateFileState(state.id, { status: "pendente", progress: 0 });
+          queueRef.current.push(state);
+        } else {
+          updateFileState(state.id, {
+            status: "erro",
+            error: msg,
+          });
+        }
       } finally {
         activeCountRef.current -= 1;
         const next = queueRef.current.shift();
@@ -174,6 +185,19 @@ export function BulkUploadForm() {
       }
     },
     [updateFileState, checkIfDone],
+  );
+
+  const retryFile = useCallback(
+    (fileState: FileUploadState) => {
+      const fileId = fileState.id;
+      const count = retryCountRef.current[fileId] ?? 0;
+      if (count >= 2) return; // Max 2 retries
+      retryCountRef.current[fileId] = count + 1;
+      updateFileState(fileId, { status: "pendente", error: undefined, progress: 0 });
+      activeCountRef.current += 1;
+      processFile(fileState);
+    },
+    [updateFileState, processFile],
   );
 
   function handleFilesChange(files: FileList | null) {
@@ -356,7 +380,15 @@ export function BulkUploadForm() {
           {(phase === "uploading" || phase === "done") && (
             <div className="space-y-2">
               {fileStates.map((s) => (
-                <FileProgressItem key={s.id} state={s} />
+                <FileProgressItem
+                  key={s.id}
+                  state={s}
+                  onRetry={
+                    s.status === "erro"
+                      ? () => retryFile(s)
+                      : undefined
+                  }
+                />
               ))}
             </div>
           )}
