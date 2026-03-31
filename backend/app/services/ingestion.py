@@ -30,6 +30,7 @@ class IngestionResult:
     total_pages: int = 0
     total_chunks: int = 0
     was_duplicate: bool = False
+    retryable: bool = False
 
 
 async def ingest_document(
@@ -136,4 +137,18 @@ async def ingest_document(
         return IngestionResult(
             success=False,
             message=f"Erro ao processar '{filename}'. Tente novamente ou contate o suporte.",
+            retryable=_is_retryable(e),
         )
+
+
+def _is_retryable(error: Exception) -> bool:
+    """Erros transientes que podem ser resolvidos com retry."""
+    try:
+        from azure.core.exceptions import HttpResponseError
+        if isinstance(error, HttpResponseError) and error.status_code in (429, 503):
+            return True
+    except ImportError:
+        pass
+    if isinstance(error, (TimeoutError, ConnectionError, OSError)):
+        return True
+    return False
