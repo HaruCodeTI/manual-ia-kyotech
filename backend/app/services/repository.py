@@ -255,3 +255,75 @@ async def get_usage_stats(db: AsyncSession) -> Dict[str, int]:
         "thumbs_up": row[2],
         "thumbs_down": row[3],
     }
+
+
+async def find_duplicate_groups(db: AsyncSession) -> Dict:
+    """Busca grupos de document_versions com mesmo source_hash."""
+    # Passo 1: hashes com mais de uma versão
+    dup_result = await db.execute(text("""
+        SELECT source_hash, COUNT(*) as cnt
+        FROM document_versions
+        GROUP BY source_hash
+        HAVING COUNT(*) > 1
+        ORDER BY COUNT(*) DESC
+    """))
+    dup_hashes = dup_result.fetchall()
+
+    if not dup_hashes:
+        return {"groups": [], "total_groups": 0, "total_removable": 0}
+
+    groups = []
+    total_removable = 0
+
+    for hash_row in dup_hashes:
+        source_hash = hash_row[0]
+
+        # Passo 2: buscar versões desse hash, ordenadas por created_at
+        ver_result = await db.execute(
+            text("""
+                SELECT
+                    dv.id, dv.document_id, dv.source_filename,
+                    d.equipment_key, d.doc_type,
+                    dv.published_date, dv.created_at,
+                    dv.storage_path,
+                    (SELECT COUNT(*) FROM chunks WHERE document_version_id = dv.id) AS chunk_count
+                FROM document_versions dv
+                JOIN documents d ON dv.document_id = d.id
+                WHERE dv.source_hash = :hash
+                ORDER BY dv.created_at ASC
+            """),
+            {"hash": source_hash},
+        )
+        versions = ver_result.fetchall()
+
+        if len(versions) < 2:
+            continue
+
+        def _version_dict(row):
+            return {
+                "version_id": str(row[0]),
+                "document_id": str(row[1]),
+                "filename": row[2],
+                "equipment_key": row[3],
+                "doc_type": row[4],
+                "published_date": row[5].isoformat() if row[5] else None,
+                "created_at": row[6].isoformat() if row[6] else None,
+                "storage_path": row[7],
+                "chunk_count": row[8],
+            }
+
+        keep = _version_dict(versions[0])
+        duplicates = [_version_dict(v) for v in versions[1:]]
+        total_removable += len(duplicates)
+
+        groups.append({
+            "source_hash": source_hash,
+            "keep": keep,
+            "duplicates": duplicates,
+        })
+
+    return {
+        "groups": groups,
+        "total_groups": len(groups),
+        "total_removable": total_removable,
+    }

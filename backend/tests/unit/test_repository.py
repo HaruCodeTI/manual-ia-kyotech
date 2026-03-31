@@ -16,6 +16,7 @@ from app.services.repository import (
     insert_chunks_with_embeddings,
     get_ingestion_stats,
     list_equipments,
+    find_duplicate_groups,
 )
 
 
@@ -159,3 +160,56 @@ async def test_list_equipments(mock_db, make_mock_result):
         {"key": "pump-a", "name": "Pump A"},
         {"key": "motor-b", "name": "Motor B"},
     ]
+
+
+# ── find_duplicate_groups ──
+
+@pytest.mark.asyncio
+async def test_find_duplicate_groups_returns_grouped(mock_db, make_mock_result):
+    """Deve retornar grupos com keep (mais antigo) e duplicates (demais)."""
+    from datetime import date, datetime
+
+    # Simula query de hashes duplicados
+    hash_rows = [("hash_abc", 2)]
+    # Simula query de versões por hash
+    version_rows = [
+        (
+            "ver-1", "doc-1", "manual.pdf", "frontier-780", "manual",
+            date(2025, 1, 15), datetime(2025, 1, 15, 10, 0, 0),
+            "container/path1.pdf", 10,
+        ),
+        (
+            "ver-2", "doc-2", "manual.pdf", "frontier-780", "manual",
+            date(2025, 3, 1), datetime(2025, 3, 1, 14, 30, 0),
+            "container/path2.pdf", 10,
+        ),
+    ]
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            make_mock_result(rows=hash_rows),
+            make_mock_result(rows=version_rows),
+        ]
+    )
+
+    result = await find_duplicate_groups(mock_db)
+
+    assert result["total_groups"] == 1
+    assert result["total_removable"] == 1
+    assert result["groups"][0]["keep"]["version_id"] == "ver-1"
+    assert len(result["groups"][0]["duplicates"]) == 1
+    assert result["groups"][0]["duplicates"][0]["version_id"] == "ver-2"
+
+
+@pytest.mark.asyncio
+async def test_find_duplicate_groups_empty(mock_db, make_mock_result):
+    """Sem duplicatas, deve retornar lista vazia."""
+    mock_db.execute = AsyncMock(
+        return_value=make_mock_result(rows=[])
+    )
+
+    result = await find_duplicate_groups(mock_db)
+
+    assert result["total_groups"] == 0
+    assert result["total_removable"] == 0
+    assert result["groups"] == []
