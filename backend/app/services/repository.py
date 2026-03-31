@@ -290,7 +290,7 @@ async def find_duplicate_groups(db: AsyncSession) -> Dict:
                 FROM document_versions dv
                 JOIN documents d ON dv.document_id = d.id
                 WHERE dv.source_hash = :hash
-                ORDER BY dv.created_at ASC
+                ORDER BY COALESCE(dv.created_at, dv.published_date) ASC
             """),
             {"hash": source_hash},
         )

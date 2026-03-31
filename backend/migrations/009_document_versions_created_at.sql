@@ -1,0 +1,2 @@
+ALTER TABLE document_versions
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
