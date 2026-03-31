@@ -118,3 +118,56 @@ class TestOcrPdf:
 
             with pytest.raises(ValueError, match="Document Intelligence não configurado"):
                 await ocr_pdf(b"fake-pdf-bytes")
+
+    @pytest.mark.anyio
+    async def test_retries_on_429_with_backoff(self):
+        """Should retry on 429 with exponential backoff and succeed on next attempt."""
+        from azure.core.exceptions import HttpResponseError
+        from app.services.ocr import ocr_pdf
+
+        error_429 = HttpResponseError(message="Too Many Requests")
+        error_429.status_code = 429
+
+        mock_result = MagicMock()
+        mock_page = MagicMock()
+        mock_page.page_number = 1
+        mock_page.lines = [MagicMock(content="OCR text after retry")]
+        mock_result.pages = [mock_page]
+
+        mock_poller = AsyncMock()
+        mock_poller.result.return_value = mock_result
+
+        mock_client = MagicMock()
+        # First call fails with 429, second succeeds
+        mock_client.begin_analyze_document = AsyncMock(
+            side_effect=[error_429, mock_poller]
+        )
+        mock_client.close = AsyncMock()
+
+        with patch("app.services.ocr._get_client", return_value=mock_client), \
+             patch("app.services.ocr.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            pages = await ocr_pdf(b"fake-pdf-bytes")
+
+        assert len(pages) == 1
+        assert pages[0].text == "OCR text after retry"
+        mock_sleep.assert_called_once_with(2)  # 2^1 = 2s backoff
+
+    @pytest.mark.anyio
+    async def test_raises_after_max_retries(self):
+        """Should raise after exhausting all retries on persistent 503."""
+        from azure.core.exceptions import HttpResponseError
+        from app.services.ocr import ocr_pdf
+
+        error_503 = HttpResponseError(message="Service Unavailable")
+        error_503.status_code = 503
+
+        mock_client = MagicMock()
+        mock_client.begin_analyze_document = AsyncMock(
+            side_effect=[error_503, error_503, error_503]
+        )
+        mock_client.close = AsyncMock()
+
+        with patch("app.services.ocr._get_client", return_value=mock_client), \
+             patch("app.services.ocr.asyncio.sleep", new_callable=AsyncMock):
+            with pytest.raises(HttpResponseError):
+                await ocr_pdf(b"fake-pdf-bytes")

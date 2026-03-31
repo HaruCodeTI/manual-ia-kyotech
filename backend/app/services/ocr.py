@@ -17,9 +17,8 @@ from app.services.pdf_extractor import PageContent
 
 logger = logging.getLogger(__name__)
 
-_TIMEOUT_SECONDS = 120
 _MAX_RETRIES = 3
-_BACKOFF_BASE = 2
+_BACKOFF_BASE = 2  # seconds: 2, 4, 8
 
 
 def _get_client() -> DocumentIntelligenceClient:
@@ -77,10 +76,10 @@ async def _analyze_with_retry(client: DocumentIntelligenceClient, file_bytes: by
             return await poller.result()
         except HttpResponseError as e:
             last_error = e
-            if e.status_code in (429, 503) and attempt < _MAX_RETRIES:
+            if e.status_code in (429, 503) and attempt <= _MAX_RETRIES:
                 wait = _BACKOFF_BASE ** attempt
                 logger.warning(f"OCR retry {attempt}/{_MAX_RETRIES} (status {e.status_code}), aguardando {wait}s")
                 await asyncio.sleep(wait)
             else:
                 raise
-    raise last_error
+    raise last_error  # unreachable, satisfies type checker
