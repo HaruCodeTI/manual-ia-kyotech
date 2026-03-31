@@ -4,6 +4,7 @@ Kyotech AI — Serviço de OCR via Azure Document Intelligence
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import time
 from typing import List, Optional
@@ -70,7 +71,7 @@ async def _analyze_with_retry(client: DocumentIntelligenceClient, file_bytes: by
         try:
             poller = await client.begin_analyze_document(
                 "prebuilt-read",
-                analyze_request=file_bytes,
+                body=io.BytesIO(file_bytes),
                 content_type="application/pdf",
             )
             return await poller.result()
