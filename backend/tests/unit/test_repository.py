@@ -17,6 +17,7 @@ from app.services.repository import (
     get_ingestion_stats,
     list_equipments,
     find_duplicate_groups,
+    delete_duplicate_versions,
 )
 
 
@@ -213,3 +214,67 @@ async def test_find_duplicate_groups_empty(mock_db, make_mock_result):
     assert result["total_groups"] == 0
     assert result["total_removable"] == 0
     assert result["groups"] == []
+
+
+# ── delete_duplicate_versions ──
+
+@pytest.mark.asyncio
+async def test_delete_duplicate_versions(mock_db, make_mock_result):
+    """Deve deletar chunks, versão e documento órfão."""
+    version_id = "ver-to-delete"
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            # 1. SELECT version info (storage_path, document_id, source_hash)
+            make_mock_result(rows=[("container/path.pdf", "doc-1", "hash_abc")]),
+            # 2. SELECT count de versões com mesmo hash (validação: > 1)
+            make_mock_result(rows=[(2,)]),
+            # 3. DELETE chunks
+            make_mock_result(),
+            # 4. DELETE document_version
+            make_mock_result(),
+            # 5. SELECT count de versões restantes no document
+            make_mock_result(rows=[(0,)]),
+            # 6. DELETE document órfão
+            make_mock_result(),
+        ]
+    )
+
+    result = await delete_duplicate_versions(mock_db, [version_id])
+
+    assert result["deleted"] == 1
+    assert result["storage_paths"] == ["container/path.pdf"]
+    assert result["orphan_documents_deleted"] == 1
+
+
+@pytest.mark.asyncio
+async def test_delete_duplicate_versions_skips_non_duplicate(mock_db, make_mock_result):
+    """Se a versão não é mais duplicata (hash único), deve pular."""
+    version_id = "ver-unique"
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            # 1. SELECT version info
+            make_mock_result(rows=[("container/path.pdf", "doc-1", "hash_abc")]),
+            # 2. SELECT count = 1 (não é mais duplicata)
+            make_mock_result(rows=[(1,)]),
+        ]
+    )
+
+    result = await delete_duplicate_versions(mock_db, [version_id])
+
+    assert result["deleted"] == 0
+    assert result["skipped"] == 1
+
+
+@pytest.mark.asyncio
+async def test_delete_duplicate_versions_skips_not_found(mock_db, make_mock_result):
+    """Se a versão não existe, deve pular."""
+    mock_db.execute = AsyncMock(
+        return_value=make_mock_result(rows=[])
+    )
+
+    result = await delete_duplicate_versions(mock_db, ["nonexistent"])
+
+    assert result["deleted"] == 0
+    assert result["skipped"] == 1

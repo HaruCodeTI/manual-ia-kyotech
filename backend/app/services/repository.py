@@ -327,3 +327,86 @@ async def find_duplicate_groups(db: AsyncSession) -> Dict:
         "total_groups": len(groups),
         "total_removable": total_removable,
     }
+
+
+async def delete_duplicate_versions(
+    db: AsyncSession,
+    version_ids: List[str],
+) -> Dict:
+    """
+    Deleta versões duplicadas e seus chunks.
+    Retorna paths dos blobs a deletar (caller é responsável pelo storage).
+    Re-valida que cada versão ainda é duplicata antes de deletar.
+    """
+    deleted = 0
+    skipped = 0
+    storage_paths: List[str] = []
+    orphan_documents_deleted = 0
+
+    for vid in version_ids:
+        # 1. Buscar info da versão
+        result = await db.execute(
+            text("""
+                SELECT storage_path, document_id, source_hash
+                FROM document_versions
+                WHERE id = :vid
+            """),
+            {"vid": vid},
+        )
+        row = result.fetchone()
+        if not row:
+            skipped += 1
+            continue
+
+        storage_path, document_id, source_hash = row[0], str(row[1]), row[2]
+
+        # 2. Re-validar que ainda é duplicata
+        count_result = await db.execute(
+            text("""
+                SELECT COUNT(*) FROM document_versions
+                WHERE source_hash = :hash
+            """),
+            {"hash": source_hash},
+        )
+        count = count_result.fetchone()[0]
+        if count <= 1:
+            skipped += 1
+            continue
+
+        # 3. Deletar chunks
+        await db.execute(
+            text("DELETE FROM chunks WHERE document_version_id = :vid"),
+            {"vid": vid},
+        )
+
+        # 4. Deletar versão
+        await db.execute(
+            text("DELETE FROM document_versions WHERE id = :vid"),
+            {"vid": vid},
+        )
+
+        storage_paths.append(storage_path)
+        deleted += 1
+
+        # 5. Verificar se o documento ficou órfão
+        orphan_result = await db.execute(
+            text("""
+                SELECT COUNT(*) FROM document_versions
+                WHERE document_id = :doc_id
+            """),
+            {"doc_id": str(document_id)},
+        )
+        remaining = orphan_result.fetchone()[0]
+        if remaining == 0:
+            await db.execute(
+                text("DELETE FROM documents WHERE id = :doc_id"),
+                {"doc_id": str(document_id)},
+            )
+            orphan_documents_deleted += 1
+
+    return {
+        "deleted": deleted,
+        "skipped": skipped,
+        "storage_paths": storage_paths,
+        "orphan_documents_deleted": orphan_documents_deleted,
+    }
