@@ -83,3 +83,34 @@ export interface ChatSessionDetail {
 
 // Tipo para o rating de feedback
 export type FeedbackRating = "thumbs_up" | "thumbs_down";
+
+export interface DuplicateVersionInfo {
+  version_id: string;
+  document_id: string;
+  filename: string;
+  equipment_key: string | null;
+  doc_type: string | null;
+  published_date: string | null;
+  created_at: string | null;
+  storage_path: string;
+  chunk_count: number;
+}
+
+export interface DuplicateGroup {
+  source_hash: string;
+  keep: DuplicateVersionInfo;
+  duplicates: DuplicateVersionInfo[];
+}
+
+export interface DuplicateScanResponse {
+  groups: DuplicateGroup[];
+  total_groups: number;
+  total_removable: number;
+}
+
+export interface DeleteDuplicatesResponse {
+  deleted: number;
+  skipped: number;
+  orphan_documents_deleted: number;
+  message: string;
+}

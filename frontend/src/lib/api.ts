@@ -1,4 +1,4 @@
-import type { ChatResponse, UploadResponse, StatsResponse, UsageStatsResponse, ChatSession, FeedbackRating } from "@/types";
+import type { ChatResponse, UploadResponse, StatsResponse, UsageStatsResponse, ChatSession, FeedbackRating, DuplicateScanResponse, DeleteDuplicatesResponse } from "@/types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -330,4 +330,44 @@ export async function submitFeedback(
     handleFetchError(err);
   }
   if (!res.ok) throw new Error(await parseApiError(res));
+}
+
+// --- Duplicates API ---
+
+export async function scanDuplicates(): Promise<DuplicateScanResponse> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/upload/duplicates`,
+      { headers: auth },
+      30_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export async function deleteDuplicates(
+  versionIds: string[]
+): Promise<DeleteDuplicatesResponse> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/upload/duplicates`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...auth },
+        body: JSON.stringify({ version_ids: versionIds }),
+      },
+      60_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
 }
