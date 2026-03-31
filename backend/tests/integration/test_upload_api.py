@@ -273,3 +273,130 @@ async def test_upload_accepts_valid_pdf_magic_bytes(async_client, sample_pdf_byt
 
     assert resp.status_code == 200
     assert resp.json()["success"] is True
+
+
+# ── Duplicates API ──
+
+@pytest.mark.anyio
+async def test_get_duplicates_returns_groups(async_client):
+    mock_groups = {
+        "groups": [
+            {
+                "source_hash": "abc123",
+                "keep": {
+                    "version_id": "ver-1",
+                    "document_id": "doc-1",
+                    "filename": "manual.pdf",
+                    "equipment_key": "frontier-780",
+                    "doc_type": "manual",
+                    "published_date": "2025-01-15",
+                    "created_at": "2025-01-15T10:00:00",
+                    "storage_path": "container/path1.pdf",
+                    "chunk_count": 10,
+                },
+                "duplicates": [
+                    {
+                        "version_id": "ver-2",
+                        "document_id": "doc-2",
+                        "filename": "manual.pdf",
+                        "equipment_key": "frontier-780",
+                        "doc_type": "manual",
+                        "published_date": "2025-03-01",
+                        "created_at": "2025-03-01T14:30:00",
+                        "storage_path": "container/path2.pdf",
+                        "chunk_count": 10,
+                    }
+                ],
+            }
+        ],
+        "total_groups": 1,
+        "total_removable": 1,
+    }
+
+    with patch(
+        "app.api.upload.repository.find_duplicate_groups",
+        new_callable=AsyncMock,
+        return_value=mock_groups,
+    ):
+        resp = await async_client.get("/api/v1/upload/duplicates")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_groups"] == 1
+    assert data["total_removable"] == 1
+    assert data["groups"][0]["keep"]["version_id"] == "ver-1"
+
+
+@pytest.mark.anyio
+async def test_get_duplicates_empty(async_client):
+    mock_groups = {"groups": [], "total_groups": 0, "total_removable": 0}
+
+    with patch(
+        "app.api.upload.repository.find_duplicate_groups",
+        new_callable=AsyncMock,
+        return_value=mock_groups,
+    ):
+        resp = await async_client.get("/api/v1/upload/duplicates")
+
+    assert resp.status_code == 200
+    assert resp.json()["total_groups"] == 0
+
+
+@pytest.mark.anyio
+async def test_technician_cannot_get_duplicates(async_client_tech):
+    resp = await async_client_tech.get("/api/v1/upload/duplicates")
+    assert resp.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_delete_duplicates_success(async_client):
+    delete_result = {
+        "deleted": 2,
+        "skipped": 0,
+        "storage_paths": ["container/a.pdf", "container/b.pdf"],
+        "orphan_documents_deleted": 1,
+    }
+
+    with patch(
+        "app.api.upload.repository.delete_duplicate_versions",
+        new_callable=AsyncMock,
+        return_value=delete_result,
+    ) as mock_delete, \
+    patch(
+        "app.api.upload.delete_blob",
+        new_callable=AsyncMock,
+    ) as mock_blob_delete, \
+    patch(
+        "app.api.upload.invalidate_cache",
+        new_callable=AsyncMock,
+    ):
+        resp = await async_client.request(
+            "DELETE",
+            "/api/v1/upload/duplicates",
+            json={"version_ids": ["ver-1", "ver-2"]},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["deleted"] == 2
+    assert mock_blob_delete.call_count == 2
+
+
+@pytest.mark.anyio
+async def test_delete_duplicates_empty_list(async_client):
+    resp = await async_client.request(
+        "DELETE",
+        "/api/v1/upload/duplicates",
+        json={"version_ids": []},
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_technician_cannot_delete_duplicates(async_client_tech):
+    resp = await async_client_tech.request(
+        "DELETE",
+        "/api/v1/upload/duplicates",
+        json={"version_ids": ["ver-1"]},
+    )
+    assert resp.status_code == 403

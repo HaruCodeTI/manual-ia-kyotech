@@ -3,6 +3,7 @@ Kyotech AI — API de Upload de Documentos
 """
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Optional
 
@@ -16,6 +17,10 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.services.ingestion import ingest_document, IngestionResult
 from app.services import repository
+from app.services.storage import delete_blob
+from app.services.semantic_cache import invalidate_cache
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
@@ -129,3 +134,59 @@ async def get_usage_stats(
 ):
     stats = await repository.get_usage_stats(db)
     return UsageStatsResponse(**stats)
+
+
+class DeleteDuplicatesRequest(BaseModel):
+    version_ids: list[str]
+
+
+class DeleteDuplicatesResponse(BaseModel):
+    deleted: int
+    skipped: int
+    orphan_documents_deleted: int
+    message: str
+
+
+@router.get("/duplicates")
+@limiter.limit("10/minute")
+async def get_duplicates(
+    request: Request,
+    _user: CurrentUser = Depends(require_role("Admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await repository.find_duplicate_groups(db)
+
+
+@router.delete("/duplicates", response_model=DeleteDuplicatesResponse)
+@limiter.limit("5/minute")
+async def delete_duplicates(
+    request: Request,
+    body: DeleteDuplicatesRequest,
+    _user: CurrentUser = Depends(require_role("Admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    if not body.version_ids:
+        raise HTTPException(status_code=400, detail="Nenhuma versão informada.")
+
+    result = await repository.delete_duplicate_versions(db, body.version_ids)
+    await db.commit()
+
+    # Deletar blobs do Azure (fora da transação SQL)
+    for path in result["storage_paths"]:
+        try:
+            await delete_blob(path)
+        except Exception as e:
+            logger.warning(f"Falha ao deletar blob {path}: {e}")
+
+    # Invalidar cache semântico
+    try:
+        await invalidate_cache(db)
+    except Exception as e:
+        logger.warning(f"Falha ao invalidar cache (não crítico): {e}")
+
+    return DeleteDuplicatesResponse(
+        deleted=result["deleted"],
+        skipped=result["skipped"],
+        orphan_documents_deleted=result["orphan_documents_deleted"],
+        message=f"{result['deleted']} duplicata(s) removida(s).",
+    )
