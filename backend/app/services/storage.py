@@ -120,3 +120,26 @@ def generate_signed_url(storage_path: str, expiry_hours: int = 1) -> str:
 
     url = f"https://{account_name}.blob.core.windows.net/{container_name}/{blob_name}?{sas_token}"
     return url
+
+
+def _delete_blob_sync(container: str, blob_name: str) -> None:
+    """Deleta um blob do Azure Blob Storage (execução síncrona)."""
+    client = get_blob_client()
+    blob_client = client.get_blob_client(container=container, blob=blob_name)
+    blob_client.delete_blob()
+    logger.info(f"Blob deleted: {container}/{blob_name}")
+
+
+async def delete_blob(storage_path: str) -> None:
+    """
+    Deleta um arquivo do Azure Blob Storage pelo storage_path (container/blob).
+    """
+    parts = storage_path.split("/", 1)
+    container_name = parts[0]
+    blob_name = parts[1] if len(parts) > 1 else ""
+
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(
+        None,
+        partial(_delete_blob_sync, container_name, blob_name),
+    )

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.storage import upload_pdf, download_blob, generate_signed_url
+from app.services.storage import upload_pdf, download_blob, generate_signed_url, delete_blob
 
 
 # ── upload_pdf ──
@@ -66,3 +66,16 @@ def test_generate_signed_url_contains_account_and_sas(mock_blob_client):
     assert "fakeaccount" in url
     assert fake_sas in url
     assert url.startswith("https://")
+
+
+# ── delete_blob ──
+
+@pytest.mark.asyncio
+async def test_delete_blob_splits_path_and_deletes(mock_blob_client):
+    with patch("app.services.storage.get_blob_client", return_value=mock_blob_client):
+        await delete_blob("my-container/some/blob.pdf")
+
+    mock_blob_client.get_blob_client.assert_called_once_with(
+        container="my-container", blob="some/blob.pdf"
+    )
+    mock_blob_client.get_blob_client.return_value.delete_blob.assert_called_once()
