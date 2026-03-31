@@ -269,8 +269,7 @@ export function BulkUploadForm() {
   const errorCount = fileStates.filter((s) => s.status === "erro").length;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <Card>
+    <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -393,7 +392,6 @@ export function BulkUploadForm() {
             </div>
           )}
         </CardContent>
-      </Card>
-    </div>
+    </Card>
   );
 }
