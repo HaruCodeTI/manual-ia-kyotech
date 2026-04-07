@@ -426,10 +426,15 @@ async def list_document_versions(
         text("""
             SELECT
                 dv.id, dv.source_filename, dv.published_date,
-                dv.ingested_at, dv.total_pages, dv.total_chunks,
+                dv.ingested_at,
+                COUNT(c.id) AS total_chunks,
+                COUNT(DISTINCT c.page_number) AS total_pages,
                 d.equipment_key, d.doc_type, dv.storage_path
             FROM document_versions dv
             JOIN documents d ON dv.document_id = d.id
+            LEFT JOIN chunks c ON c.document_version_id = dv.id
+            GROUP BY dv.id, dv.source_filename, dv.published_date,
+                     dv.ingested_at, d.equipment_key, d.doc_type, dv.storage_path
             ORDER BY dv.ingested_at DESC NULLS LAST
             LIMIT :limit OFFSET :offset
         """),
@@ -443,8 +448,8 @@ async def list_document_versions(
             "source_filename": row[1],
             "published_date": row[2].isoformat() if row[2] else None,
             "ingested_at": row[3].isoformat() if row[3] else None,
-            "total_pages": row[4],
-            "total_chunks": row[5],
+            "total_chunks": int(row[4]),
+            "total_pages": int(row[5]),
             "equipment_key": row[6],
             "doc_type": row[7],
             "storage_path": row[8],
