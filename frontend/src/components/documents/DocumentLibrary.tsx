@@ -101,7 +101,7 @@ export function DocumentLibrary() {
   const end = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -131,7 +131,7 @@ export function DocumentLibrary() {
           Nenhum documento encontrado.
         </p>
       ) : (
-        <div className="overflow-auto rounded-lg border border-border">
+        <div className="rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border bg-muted/60 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider backdrop-blur">
