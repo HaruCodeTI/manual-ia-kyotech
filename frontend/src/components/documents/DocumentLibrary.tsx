@@ -121,6 +121,33 @@ export function DocumentLibrary() {
         </div>
       )}
 
+      {/* Pagination controls — top */}
+      {!loading && total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span>Exibir</span>
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="rounded border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {PAGE_SIZE_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <span>por página</span>
+          </div>
+          <span>{start}–{end} de {total}</span>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="outline" onClick={() => fetchPage(1, pageSize)} disabled={page <= 1 || loading} title="Primeira página">«</Button>
+            <Button size="sm" variant="outline" onClick={() => fetchPage(page - 1, pageSize)} disabled={page <= 1 || loading}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="px-2">{page} / {totalPages}</span>
+            <Button size="sm" variant="outline" onClick={() => fetchPage(page + 1, pageSize)} disabled={page >= totalPages || loading}><ChevronRight className="h-4 w-4" /></Button>
+            <Button size="sm" variant="outline" onClick={() => fetchPage(totalPages, pageSize)} disabled={page >= totalPages || loading} title="Última página">»</Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="flex justify-center py-12">
@@ -136,8 +163,7 @@ export function DocumentLibrary() {
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border bg-muted/60 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider backdrop-blur">
                 <th className="px-4 py-3">Nome</th>
-                <th className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">Ingerido em</th>
-                <th className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">Publicado em</th>
+                <th className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">Ingerido em</th>
                 <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
@@ -173,11 +199,8 @@ export function DocumentLibrary() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground whitespace-nowrap">
-                    {formatDate(v.ingested_at)}
-                  </td>
                   <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground whitespace-nowrap">
-                    {formatDate(v.published_date)}
+                    {formatDate(v.ingested_at)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -209,68 +232,6 @@ export function DocumentLibrary() {
         </div>
       )}
 
-      {/* Pagination */}
-      {!loading && total > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span>Exibir</span>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="rounded border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              {PAGE_SIZE_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-            <span>por página</span>
-          </div>
-
-          <span>
-            {start}–{end} de {total}
-          </span>
-
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => fetchPage(1, pageSize)}
-              disabled={page <= 1 || loading}
-              title="Primeira página"
-            >
-              «
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => fetchPage(page - 1, pageSize)}
-              disabled={page <= 1 || loading}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="px-2">
-              {page} / {totalPages}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => fetchPage(page + 1, pageSize)}
-              disabled={page >= totalPages || loading}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => fetchPage(totalPages, pageSize)}
-              disabled={page >= totalPages || loading}
-              title="Última página"
-            >
-              »
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
