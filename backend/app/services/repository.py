@@ -410,3 +410,73 @@ async def delete_duplicate_versions(
         "storage_paths": storage_paths,
         "orphan_documents_deleted": orphan_documents_deleted,
     }
+
+
+async def list_document_versions(
+    db: AsyncSession,
+    page: int = 1,
+    page_size: int = 20,
+) -> Dict:
+    offset = (page - 1) * page_size
+
+    total_result = await db.execute(text("SELECT COUNT(*) FROM document_versions"))
+    total = total_result.fetchone()[0]
+
+    result = await db.execute(
+        text("""
+            SELECT
+                dv.id, dv.source_filename, dv.published_date,
+                dv.ingested_at, dv.total_pages, dv.total_chunks,
+                d.equipment_key, d.doc_type, dv.storage_path
+            FROM document_versions dv
+            JOIN documents d ON dv.document_id = d.id
+            ORDER BY dv.ingested_at DESC NULLS LAST
+            LIMIT :limit OFFSET :offset
+        """),
+        {"limit": page_size, "offset": offset},
+    )
+    rows = result.fetchall()
+
+    versions = [
+        {
+            "version_id": str(row[0]),
+            "source_filename": row[1],
+            "published_date": row[2].isoformat() if row[2] else None,
+            "ingested_at": row[3].isoformat() if row[3] else None,
+            "total_pages": row[4],
+            "total_chunks": row[5],
+            "equipment_key": row[6],
+            "doc_type": row[7],
+            "storage_path": row[8],
+        }
+        for row in rows
+    ]
+
+    return {
+        "versions": versions,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size,
+    }
+
+
+async def update_document_version_filename(
+    db: AsyncSession,
+    version_id: str,
+    new_filename: str,
+) -> bool:
+    result = await db.execute(
+        text("""
+            UPDATE document_versions
+            SET source_filename = :filename
+            WHERE id = :vid
+            RETURNING id
+        """),
+        {"filename": new_filename, "vid": version_id},
+    )
+    updated = result.fetchone()
+    if not updated:
+        return False
+    await db.commit()
+    return True

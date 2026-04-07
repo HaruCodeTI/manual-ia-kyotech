@@ -1,4 +1,4 @@
-import type { ChatResponse, UploadResponse, StatsResponse, UsageStatsResponse, ChatSession, FeedbackRating, DuplicateScanResponse, DeleteDuplicatesResponse } from "@/types";
+import type { ChatResponse, UploadResponse, StatsResponse, UsageStatsResponse, ChatSession, FeedbackRating, DuplicateScanResponse, DeleteDuplicatesResponse, DocumentListResponse } from "@/types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -348,6 +348,46 @@ export async function scanDuplicates(): Promise<DuplicateScanResponse> {
   }
   if (!res.ok) throw new Error(await parseApiError(res));
   return res.json();
+}
+
+// --- Documents Library API ---
+
+export async function listDocuments(page = 1, pageSize = 20): Promise<DocumentListResponse> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/upload/documents?page=${page}&page_size=${pageSize}`,
+      { headers: auth },
+      30_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export async function updateDocumentFilename(
+  versionId: string,
+  sourceFilename: string
+): Promise<void> {
+  const auth = await authHeaders();
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE}/api/v1/upload/documents/${versionId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...auth },
+        body: JSON.stringify({ source_filename: sourceFilename }),
+      },
+      15_000
+    );
+  } catch (err) {
+    handleFetchError(err);
+  }
+  if (!res.ok) throw new Error(await parseApiError(res));
 }
 
 export async function deleteDuplicates(

@@ -47,9 +47,15 @@ Rules:
    asks what changed between versions, asks about updates or differences in a document.
    Keywords: "o que mudou", "compara", "diferença entre versões", "versão mais nova",
    "atualização do manual", "nova versão", "changed", "what's new".
+9. Determine if this is a cross-document search query.
+   Set is_document_search to true if the technician wants to know WHICH documents or manuals
+   mention, cite, or contain a specific term — typically a Part Number (PN), part code, or component name.
+   Keywords: "quais documentos", "quais manuais", "em quais manuais", "algum manual cita",
+   "onde aparece", "quais arquivos mencionam", "which documents", "which manuals mention".
+   This is different from a regular question — the user wants a LIST of documents, not a prose answer.
 
 Respond ONLY with this JSON format, no markdown:
-{"query_en": "...", "doc_type": "manual" or "informativo" or "both", "equipment_hint": "model name or null", "needs_clarification": false, "clarification_question": null, "is_comparison_query": false}"""
+{"query_en": "...", "doc_type": "manual" or "informativo" or "both", "equipment_hint": "model name or null", "needs_clarification": false, "clarification_question": null, "is_comparison_query": false, "is_document_search": false}"""
 
 
 @dataclass
@@ -60,7 +66,8 @@ class RewrittenQuery:
     equipment_hint: Optional[str]
     needs_clarification: bool = False
     clarification_question: Optional[str] = None
-    is_comparison_query: bool = False  # NEW
+    is_comparison_query: bool = False
+    is_document_search: bool = False
 
 
 async def rewrite_query(
@@ -122,7 +129,8 @@ async def rewrite_query(
             equipment_hint=equipment,
             needs_clarification=parsed.get("needs_clarification", False),
             clarification_question=parsed.get("clarification_question"),
-            is_comparison_query=parsed.get("is_comparison_query", False),  # NEW
+            is_comparison_query=parsed.get("is_comparison_query", False),
+            is_document_search=parsed.get("is_document_search", False),
         )
     except (json.JSONDecodeError, KeyError) as e:
         logger.warning(f"Falha no parse do rewrite, usando query original: {e}")

@@ -136,6 +136,66 @@ async def get_usage_stats(
     return UsageStatsResponse(**stats)
 
 
+class DocumentVersionItem(BaseModel):
+    version_id: str
+    source_filename: str
+    published_date: Optional[str] = None
+    ingested_at: Optional[str] = None
+    total_pages: int = 0
+    total_chunks: int = 0
+    equipment_key: Optional[str] = None
+    doc_type: Optional[str] = None
+    storage_path: Optional[str] = None
+
+
+class DocumentListResponse(BaseModel):
+    versions: list[DocumentVersionItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class UpdateFilenameRequest(BaseModel):
+    source_filename: str
+
+
+@router.get("/documents", response_model=DocumentListResponse)
+async def list_documents(
+    page: int = 1,
+    page_size: int = 20,
+    _user: CurrentUser = Depends(require_role("Admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    result = await repository.list_document_versions(db, page=page, page_size=page_size)
+    return DocumentListResponse(**result)
+
+
+@router.patch("/documents/{version_id}")
+async def update_document_filename(
+    version_id: str,
+    body: UpdateFilenameRequest,
+    _user: CurrentUser = Depends(require_role("Admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    filename = body.source_filename.strip()
+    if not filename:
+        raise HTTPException(status_code=400, detail="Nome do arquivo não pode ser vazio.")
+
+    updated = await repository.update_document_version_filename(db, version_id, filename)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Versão não encontrada.")
+
+    try:
+        await invalidate_cache(db)
+    except Exception as e:
+        logger.warning(f"Falha ao invalidar cache após rename (não crítico): {e}")
+
+    return {"success": True, "version_id": version_id, "source_filename": filename}
+
+
 class DeleteDuplicatesRequest(BaseModel):
     version_ids: list[str]
 

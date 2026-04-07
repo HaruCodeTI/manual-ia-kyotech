@@ -87,6 +87,25 @@ FORMATO OBRIGATÓRIO DA RESPOSTA:
 NÃO liste as fontes ao final — o sistema exibe as fontes automaticamente."""
 
 
+DOCUMENT_SEARCH_SYSTEM_PROMPT = """Você é o assistente técnico da Kyotech, especializado em equipamentos de endoscopia Fujifilm.
+O técnico quer saber em quais documentos um determinado termo, código de peça (PN) ou componente é mencionado.
+
+REGRAS OBRIGATÓRIAS:
+1. Responda SEMPRE em português brasileiro
+2. Use APENAS as informações dos trechos fornecidos — NUNCA invente
+3. Para cada documento encontrado, cite a fonte com [Fonte N]
+4. Se o termo não aparecer em nenhum trecho, diga claramente
+
+FORMATO OBRIGATÓRIO DA RESPOSTA:
+Liste cada documento que menciona o termo, com o trecho relevante:
+
+**[nome do arquivo]** — página X [Fonte N]
+> "trecho relevante onde o termo aparece"
+
+Se mais de um trecho do mesmo documento for relevante, agrupe-os sob o mesmo documento.
+NÃO liste as fontes ao final — o sistema exibe as fontes automaticamente."""
+
+
 def build_context(results: List[SearchResult]) -> str:
     """Constrói o contexto dos trechos para o prompt."""
     context_parts = []
@@ -162,6 +181,7 @@ async def generate_response(
     diagnostic_mode: bool = False,
     version_diff=None,           # Optional[VersionDiff] — sem import explícito para evitar circular
     is_comparison_query: bool = False,
+    is_document_search: bool = False,
 ) -> RAGResponse:
     """
     Gera resposta em português com citações baseadas nos resultados da busca.
@@ -189,17 +209,31 @@ async def generate_response(
         diff_text = build_diff_context(version_diff)
         context = f"{diff_text}\n\n{context}"
 
+    if is_document_search:
+        # Limitar a top-3 chunks por documento para evitar resposta verbosa
+        seen: dict = {}
+        filtered_results = []
+        for r in search_results:
+            count = seen.get(r.document_version_id, 0)
+            if count < 3:
+                filtered_results.append(r)
+                seen[r.document_version_id] = count + 1
+        search_results = filtered_results
+        context = build_context(search_results)
+
     if is_comparison_query and version_diff and version_diff.has_changes:
         system_prompt = COMPARISON_SYSTEM_PROMPT.format(
             version_old=version_diff.version_old,
             version_new=version_diff.version_new,
         )
+    elif is_document_search:
+        system_prompt = DOCUMENT_SEARCH_SYSTEM_PROMPT
     elif diagnostic_mode:
         system_prompt = DIAGNOSTIC_SYSTEM_PROMPT
     else:
         system_prompt = SYSTEM_PROMPT
 
-    max_tokens = 2500 if (is_comparison_query or diagnostic_mode) else 1500
+    max_tokens = 2500 if (is_comparison_query or diagnostic_mode or is_document_search) else 1500
     messages: List[Dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
     if history_summary:

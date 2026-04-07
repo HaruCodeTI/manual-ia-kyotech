@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Upload,
   BarChart3,
+  FileText,
   Plus,
   Trash2,
   Loader2,
@@ -25,6 +26,7 @@ import type { ChatSession } from "@/types";
 const NAV_ITEMS = [
   { href: "/", label: "Chat", icon: MessageSquare, adminOnly: false },
   { href: "/upload", label: "Upload", icon: Upload, adminOnly: true },
+  { href: "/documents", label: "Documentos", icon: FileText, adminOnly: true },
   { href: "/stats", label: "Estatísticas", icon: BarChart3, adminOnly: true },
 ] as const;
 

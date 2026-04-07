@@ -114,3 +114,23 @@ export interface DeleteDuplicatesResponse {
   orphan_documents_deleted: number;
   message: string;
 }
+
+export interface DocumentVersionItem {
+  version_id: string;
+  source_filename: string;
+  published_date: string | null;
+  ingested_at: string | null;
+  total_pages: number;
+  total_chunks: number;
+  equipment_key: string | null;
+  doc_type: string | null;
+  storage_path: string | null;
+}
+
+export interface DocumentListResponse {
+  versions: DocumentVersionItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

@@ -196,12 +196,13 @@ async def ask_question(
     logger.info(
         f"Query reescrita (tipo: {rewritten.doc_type}, equip: {rewritten.equipment_hint}, "
         f"clarification: {rewritten.needs_clarification}, "
-        f"comparison: {rewritten.is_comparison_query})"
+        f"comparison: {rewritten.is_comparison_query}, "
+        f"document_search: {rewritten.is_document_search})"
     )
 
-    # Verificar semantic cache — bypass para queries de comparação (diff muda com novas versões)
+    # Verificar semantic cache — bypass para comparação e busca cross-document
     cached = None
-    if not rewritten.is_comparison_query:
+    if not rewritten.is_comparison_query and not rewritten.is_document_search:
         cached = await get_cached_response(db, question)
     if cached:
         logger.info(f"[{user.id}] Cache HIT — retornando resposta cacheada")
@@ -352,6 +353,7 @@ async def ask_question(
         diagnostic_mode=diagnostic_mode,
         version_diff=version_diff,
         is_comparison_query=rewritten.is_comparison_query,
+        is_document_search=rewritten.is_document_search,
     )
 
     citations = [
