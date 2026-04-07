@@ -38,7 +38,7 @@ def _extract_with_pymupdf(file_bytes: bytes) -> Tuple[List[PageContent], int]:
 
     for page_num in range(len(doc)):
         page = doc[page_num]
-        text = page.get_text("text").strip()
+        text = page.get_text("text").strip().replace('\x00', '')
         if text:
             pages.append(PageContent(page_number=page_num + 1, text=text))
 
