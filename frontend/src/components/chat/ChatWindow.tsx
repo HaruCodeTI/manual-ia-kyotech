@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { askQuestion, getSessionMessages } from "@/lib/api";
 import { useChatContext } from "@/lib/chat-context";
+import { useViewer } from "@/lib/viewer-context";
 import type { Message, ChatSessionDetail } from "@/types";
 import { MessageBubble } from "./MessageBubble";
-import { ChatInput } from "./ChatInput";
+import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { Loader2 } from "lucide-react";
 import { Bot } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
@@ -13,6 +14,7 @@ import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 
 export function ChatWindow() {
   const { activeSessionId, setActiveSessionId } = useChatContext();
+  const { isOpen: viewerOpen } = useViewer();
   const { user } = useUser();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +23,7 @@ export function ChatWindow() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const chatInputRef = useRef<ChatInputHandle>(null);
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,6 +32,19 @@ export function ChatWindow() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    if (!viewerOpen) {
+      chatInputRef.current?.focus();
+      return;
+    }
+
+    function handleMouseUp() {
+      setTimeout(() => chatInputRef.current?.focus(), 0);
+    }
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+  }, [viewerOpen]);
 
   useEffect(() => {
     if (!activeSessionId) {
@@ -154,6 +170,7 @@ export function ChatWindow() {
                   transition={{ duration: 0.4, ease: "easeInOut" }}
                 >
                   <ChatInput
+                    ref={chatInputRef}
                     onSend={handleSend}
                     disabled={isLoading}
                     variant="welcome"
@@ -184,6 +201,7 @@ export function ChatWindow() {
                   transition={{ duration: 0.4, ease: "easeInOut" }}
                 >
                   <ChatInput
+                    ref={chatInputRef}
                     onSend={handleSend}
                     disabled={isLoading}
                     variant="bottom"
