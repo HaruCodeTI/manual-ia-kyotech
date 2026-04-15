@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { Citation } from "@/types";
-import { useViewer } from "@/lib/viewer-context";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Eye } from "lucide-react";
 
@@ -13,7 +12,6 @@ interface CitationBadgeProps {
 export function CitationBadge({ citation }: CitationBadgeProps) {
   const [showDetail, setShowDetail] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-  const { openViewer } = useViewer();
 
   useEffect(() => {
     if (!showDetail) return;
@@ -33,14 +31,7 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
     const versionId = citation.document_version_id;
     if (!versionId) return;
 
-    openViewer({
-      versionId,
-      pageNumber: citation.page_number,
-      sourceFilename: citation.source_filename,
-      equipmentKey: citation.equipment_key,
-      docType: citation.doc_type,
-      publishedDate: citation.published_date,
-    });
+    window.open(`/viewer/${versionId}?page=${citation.page_number}`, "_blank", "noopener,noreferrer");
   }
 
   return (

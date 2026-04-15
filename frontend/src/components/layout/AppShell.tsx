@@ -21,6 +21,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  // Página do viewer standalone: fullscreen sem sidebar/header
+  if (pathname.startsWith("/viewer/")) {
+    return <>{children}</>;
+  }
+
   function handleToggle() {
     if (isDesktop) {
       setCollapsed((v) => !v);
