@@ -20,8 +20,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_documents_doc_key
     ON documents (doc_key);
 
 -- ── 2. Chave da versão: conteúdo, não data ──
--- Reenviar o mesmo arquivo deve ser no-op; arquivos diferentes no mesmo dia
+-- Reenviar o mesmo arquivo deve ser no-op. Arquivos diferentes no mesmo dia
 -- devem gerar versões diferentes.
+-- Atenção: o runner em app/main.py quebra o arquivo por ponto e vírgula, sem
+-- entender comentários. Um desses caracteres dentro de um comentário parte o
+-- statement seguinte ao meio e derruba o startup da aplicação.
 ALTER TABLE document_versions DROP CONSTRAINT IF EXISTS uq_document_version;
 DROP INDEX IF EXISTS uq_document_version;
 
