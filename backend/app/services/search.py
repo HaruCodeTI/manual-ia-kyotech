@@ -22,6 +22,11 @@ from app.services.embedder import generate_single_embedding
 
 logger = logging.getLogger(__name__)
 
+# Corte da busca textual. Acima do default 0.6 do operador `<%` para não
+# reintroduzir ruído: com 0.6 o banco inteiro devolvia 619 chunks para uma
+# query de código de peça.
+WORD_SIM_THRESHOLD = 0.7
+
 
 @dataclass
 class SearchResult:
@@ -131,12 +136,23 @@ async def text_search(
     include_all_versions: bool = False,
 ) -> List[SearchResult]:
     """
-    Busca textual usando pg_trgm (trigram similarity).
+    Busca textual usando pg_trgm (word similarity).
     Boa para códigos de peça, números de erro, termos exatos.
+
+    Usa `word_similarity` (não `similarity`): a versão simples normaliza pelo
+    tamanho da string inteira, então um fragmento de 11 caracteres vencia um
+    chunk de 800 que continha literalmente o código buscado. Medido em prod
+    para 'ecn p1910': `similarity` trazia 0/30 acertos, `word_similarity` 30/30.
+
+    O operador `<%` é quem usa o índice GIN (idx_chunks_content_trgm); o
+    predicado explícito logo abaixo aplica nosso corte sem depender do GUC
+    de sessão pg_trgm.word_similarity_threshold, que o pool não garante.
+    A ordem dos argumentos importa — `word_similarity` é assimétrica e a
+    query vem primeiro.
     """
     # Filtra apenas versões atuais via JOIN com current_versions
     filters = []
-    params: Dict = {"query": query_text, "limit": limit}
+    params: Dict = {"query": query_text, "limit": limit, "wsim_min": WORD_SIM_THRESHOLD}
 
     if doc_type:
         filters.append("d.doc_type = :doc_type")
@@ -157,7 +173,7 @@ async def text_search(
                 c.id AS chunk_id,
                 c.content,
                 c.page_number,
-                similarity(c.content, :query) AS sim,
+                word_similarity(:query, c.content) AS sim,
                 d.id AS document_id,
                 d.doc_type,
                 d.equipment_key,
@@ -170,7 +186,8 @@ async def text_search(
             FROM chunks c
             JOIN {version_source} cv ON c.document_version_id = cv.id
             JOIN documents d ON cv.document_id = d.id
-            WHERE similarity(c.content, :query) > 0.05
+            WHERE :query <% c.content
+              AND word_similarity(:query, c.content) > :wsim_min
             {where_clause}
             ORDER BY sim DESC
             LIMIT :limit
