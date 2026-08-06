@@ -4,6 +4,9 @@ Kyotech AI — Repositório de Dados
 from __future__ import annotations
 
 import logging
+import os
+import re
+import unicodedata
 from datetime import date
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -14,6 +17,40 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.chunker import TextChunk
 
 logger = logging.getLogger(__name__)
+
+# Sufixos de revisão que não fazem parte da identidade do documento:
+# "_V2.0", " Ver.1.7", "-ver 4.2", " (1)", " copy", "cópia de ".
+# Nota: nada de \b depois do separador — "_" é caractere de palavra, então
+# não existe fronteira entre "_" e "V" e o sufixo "_V2.0" escapava.
+_VERSION_SUFFIX = re.compile(
+    r"(?:(?:^|[\s_\-]+)v(?:er)?\.?\s*\d+(?:[._]\d+)*)"
+    r"|(?:\s*\(\d+\))"
+    r"|(?:(?:^|[\s_\-]+)cop(?:y|ia)(?=[\s_\-]|$))",
+    re.IGNORECASE,
+)
+
+
+def normalize_doc_key(filename: str) -> str:
+    """
+    Identidade estável de um documento a partir do nome do arquivo.
+
+    É a chave de versionamento: dois arquivos com o mesmo doc_key são a mesma
+    obra em revisões diferentes; doc_keys diferentes são documentos distintos.
+    Não usamos (doc_type, equipment_key) para isso — são grosseiros demais e
+    fundiam arquivos sem relação na mesma versão. Também não usamos
+    source_hash, que muda a cada revisão, que é justamente o que queremos
+    reconhecer como "mesmo documento".
+    """
+    stem = os.path.splitext(filename)[0]
+    # "cópia de X" / "copy of X" viram só X
+    stem = re.sub(r"^\s*(?:c[oó]pia\s+de|copy\s+of)\s+", "", stem, flags=re.IGNORECASE)
+    stem = unicodedata.normalize("NFKD", stem)
+    stem = "".join(c for c in stem if not unicodedata.combining(c))
+    stem = _VERSION_SUFFIX.sub(" ", stem)
+    stem = re.sub(r"[^a-z0-9]+", " ", stem.lower()).strip()
+    # Nome degenerado (só versão/números) — cai no arquivo inteiro para não
+    # colapsar documentos distintos numa chave vazia.
+    return stem or re.sub(r"[^a-z0-9]+", " ", filename.lower()).strip()
 
 
 async def find_or_create_equipment(
@@ -46,33 +83,51 @@ async def find_or_create_document(
     db: AsyncSession,
     doc_type: Optional[str],
     equipment_key: Optional[str],
+    source_filename: str,
 ) -> UUID:
-    # Quando ambos os metadados são nulos, cada upload cria um documento
-    # independente para evitar que arquivos distintos compartilhem o mesmo
-    # version_id e sobrescrevam chunks uns dos outros.
-    if doc_type is not None or equipment_key is not None:
-        result = await db.execute(
+    """
+    Resolve a identidade do documento pelo nome de arquivo normalizado.
+
+    A versão anterior agrupava por (doc_type, equipment_key), o que fundia
+    arquivos sem relação nenhuma: todo upload com doc_type='manual' e sem
+    equipamento caía no mesmo document_id e, via ON CONFLICT em create_version,
+    na mesma linha de versão. Uma única versão em prod acumulou 373 chunks de
+    cinco documentos diferentes, exibidos sob o nome de quem gravou por último.
+    doc_type e equipment_key seguem existindo, mas só como metadado de boost
+    no ranking — nunca como identidade.
+    """
+    doc_key = normalize_doc_key(source_filename)
+
+    result = await db.execute(
+        text("SELECT id FROM documents WHERE doc_key = :doc_key"),
+        {"doc_key": doc_key},
+    )
+    row = result.fetchone()
+    if row:
+        # Preenche metadado que faltava em uploads anteriores, sem sobrescrever
+        # o que já existe com um valor nulo.
+        await db.execute(
             text("""
-                SELECT id FROM documents
-                WHERE doc_type IS NOT DISTINCT FROM :doc_type
-                  AND equipment_key IS NOT DISTINCT FROM :equipment_key
+                UPDATE documents
+                SET doc_type = COALESCE(doc_type, :doc_type),
+                    equipment_key = COALESCE(equipment_key, :equipment_key)
+                WHERE id = :id
             """),
-            {"doc_type": doc_type, "equipment_key": equipment_key},
+            {"doc_type": doc_type, "equipment_key": equipment_key, "id": row[0]},
         )
-        row = result.fetchone()
-        if row:
-            return row[0]
+        return row[0]
 
     result = await db.execute(
         text("""
-            INSERT INTO documents (doc_type, equipment_key)
-            VALUES (:doc_type, :equipment_key)
+            INSERT INTO documents (doc_type, equipment_key, doc_key)
+            VALUES (:doc_type, :equipment_key, :doc_key)
+            ON CONFLICT (doc_key) DO UPDATE SET doc_key = EXCLUDED.doc_key
             RETURNING id
         """),
-        {"doc_type": doc_type, "equipment_key": equipment_key},
+        {"doc_type": doc_type, "equipment_key": equipment_key, "doc_key": doc_key},
     )
     doc_id = result.fetchone()[0]
-    logger.info(f"Documento criado: {doc_type} / {equipment_key} → {doc_id}")
+    logger.info(f"Documento criado: {doc_key!r} ({doc_type} / {equipment_key}) → {doc_id}")
     return doc_id
 
 
@@ -99,16 +154,26 @@ async def create_version(
     source_filename: str,
     storage_path: str,
 ) -> UUID:
+    """
+    Cria a versão. O conflito é por conteúdo (source_hash), não por data.
+
+    A chave anterior — (document_id, published_date) — fundia arquivos
+    distintos: published_date cai em date.today() quando não vem no upload
+    (ingestion.py), então tudo que subia no mesmo dia sob o mesmo documento
+    colidia e sobrescrevia a linha anterior, deixando os chunks do arquivo
+    antigo apontando para um nome de arquivo que não é o deles.
+
+    Com (document_id, source_hash) o conflito só acontece no reenvio do
+    mesmo arquivo, e aí é no-op — não sobrescreve nada.
+    """
     result = await db.execute(
         text("""
             INSERT INTO document_versions
                 (document_id, published_date, source_hash, source_filename, storage_path)
             VALUES
                 (:doc_id, :pub_date, :hash, :filename, :path)
-            ON CONFLICT (document_id, published_date) DO UPDATE
-            SET source_hash = EXCLUDED.source_hash,
-                source_filename = EXCLUDED.source_filename,
-                storage_path = EXCLUDED.storage_path
+            ON CONFLICT (document_id, source_hash) DO UPDATE
+            SET source_filename = document_versions.source_filename
             RETURNING id
         """),
         {

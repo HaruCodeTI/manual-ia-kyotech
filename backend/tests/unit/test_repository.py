@@ -12,6 +12,7 @@ from app.services.chunker import TextChunk
 from app.services.repository import (
     find_or_create_equipment,
     find_or_create_document,
+    normalize_doc_key,
     check_version_exists,
     insert_chunks_with_embeddings,
     get_ingestion_stats,
@@ -53,9 +54,14 @@ async def test_create_equipment_auto_display_name(mock_db, make_mock_result):
 async def test_find_document_existing(mock_db, make_mock_result):
     doc_id = uuid4()
     mock_db.execute = AsyncMock(
-        return_value=make_mock_result(rows=[(doc_id,)])
+        side_effect=[
+            make_mock_result(rows=[(doc_id,)]),  # SELECT por doc_key
+            make_mock_result(rows=[]),           # UPDATE dos metadados
+        ]
     )
-    result = await find_or_create_document(mock_db, "manual", "pump-x")
+    result = await find_or_create_document(
+        mock_db, "manual", "pump-x", source_filename="Pump X Manual.pdf"
+    )
     assert result == doc_id
 
 
@@ -68,8 +74,38 @@ async def test_create_document_returns_id(mock_db, make_mock_result):
             make_mock_result(rows=[(new_id,)]), # INSERT RETURNING
         ]
     )
-    result = await find_or_create_document(mock_db, "manual", "pump-x")
+    result = await find_or_create_document(
+        mock_db, "manual", "pump-x", source_filename="Pump X Manual.pdf"
+    )
     assert result == new_id
+
+
+# ── normalize_doc_key ──
+# É a chave de identidade do documento: revisões do mesmo arquivo precisam
+# colapsar, e arquivos distintos precisam continuar distintos.
+
+@pytest.mark.parametrize("a,b", [
+    ("EP-6000_Service_Manual_FV694A_V2.0.pdf", "EP-6000_Service_Manual_FV694A_V3.1.pdf"),
+    ("SR0406-N002_G5-Manual_ENG_Ver.4.7.pdf", "SR0406-N002_G5-Manual_ENG_Ver.5.0.pdf"),
+    ("Manual VP 4400.pdf", "Cópia de Manual VP 4400.pdf"),
+    ("Manual VP 4400.pdf", "Manual VP 4400 (1).pdf"),
+])
+def test_doc_key_colapsa_revisoes(a, b):
+    assert normalize_doc_key(a) == normalize_doc_key(b)
+
+
+@pytest.mark.parametrize("a,b", [
+    ("EP-6000_Service_Manual.pdf", "EP-8000_Service_Manual.pdf"),
+    ("SR1910-N002 soldering.pdf", "SR2009-N013 laparoscope.pdf"),
+    ("1689 ECN-P1910 Version Upgrade.pdf", "1285 Registration of PC Version.pdf"),
+])
+def test_doc_key_separa_documentos_distintos(a, b):
+    assert normalize_doc_key(a) != normalize_doc_key(b)
+
+
+def test_doc_key_nome_degenerado_nao_vira_vazio():
+    # Um nome que é só sufixo de versão não pode colapsar com outro igual.
+    assert normalize_doc_key("V1.0.pdf") != ""
 
 
 # ── check_version_exists ──

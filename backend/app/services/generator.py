@@ -262,12 +262,20 @@ async def generate_response(
 
     referenced_indices = {int(m) for m in re.findall(r"\[Fonte (\d+)\]", answer)}
 
+    # As fontes são renumeradas 1..N na ordem em que aparecem no contexto.
+    # Antes expúnhamos o índice bruto do search_result, então uma resposta com
+    # uma única citação da 3ª fonte exibia "Fonte 3" sozinha e o usuário
+    # concluía que as fontes 1 e 2 tinham sumido.
     citations = []
+    display_index = 0
+    renumber: dict[int, int] = {}
     for i, r in enumerate(search_results, 1):
         if i not in referenced_indices:
             continue
+        display_index += 1
+        renumber[i] = display_index
         citations.append(Citation(
-            source_index=i,
+            source_index=display_index,
             source_filename=r.source_filename,
             page_number=r.page_number,
             equipment_key=r.equipment_key,
@@ -275,6 +283,17 @@ async def generate_response(
             published_date=str(r.published_date),
             document_version_id=r.document_version_id,
         ))
+
+    # Reescreve os marcadores inline para bater com a numeração exibida.
+    # Sem isso o texto citaria "[Fonte 3]" enquanto o rodapé mostra "Fonte 1".
+    if renumber:
+        answer = re.sub(
+            r"\[Fonte (\d+)\]",
+            lambda m: f"[Fonte {renumber[int(m.group(1))]}]"
+            if int(m.group(1)) in renumber
+            else m.group(0),
+            answer,
+        )
 
     logger.info(
         f"Resposta gerada: {len(answer)} chars, {len(citations)} citações"

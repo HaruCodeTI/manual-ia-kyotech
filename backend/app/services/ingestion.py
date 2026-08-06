@@ -58,8 +58,10 @@ async def ingest_document(
             logger.info("[2/6] Sem equipment_key — pulando criação de equipamento")
 
         # Passo 3: Buscar/criar documento
-        logger.info(f"[3/6] Registrando documento: {doc_type} / {equipment_key}")
-        document_id = await repository.find_or_create_document(db, doc_type, equipment_key)
+        logger.info(f"[3/6] Registrando documento: {doc_type} / {equipment_key} / {filename}")
+        document_id = await repository.find_or_create_document(
+            db, doc_type, equipment_key, source_filename=filename
+        )
 
         # Verificar duplicata
         is_duplicate = await repository.check_version_exists(db, document_id, extraction.source_hash)
