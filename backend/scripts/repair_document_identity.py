@@ -28,7 +28,7 @@ import argparse
 import asyncio
 import logging
 import sys
-from collections import defaultdict
+from datetime import date
 
 sys.path.insert(0, "/app")
 
@@ -183,10 +183,24 @@ async def main(apply: bool) -> None:
         ok = fail = 0
         for name in to_reingest:
             filename = name.rsplit("/", 1)[-1]
+            # O storage_path é recomposto por ingest_document como
+            # "<equipment_key ou misc>/<published_date>/<filename>". Passando de
+            # volta a pasta e a data lidas do próprio blob, a reingestão
+            # sobrescreve o mesmo blob em vez de criar uma cópia em
+            # misc/<hoje>/ — sem isso o original ficaria órfão e uma segunda
+            # execução do reparo reingeriria tudo outra vez.
+            parts = name.split("/")
+            folder = parts[0] if len(parts) == 3 else None
+            try:
+                orig_date = date.fromisoformat(parts[1]) if len(parts) == 3 else None
+            except ValueError:
+                orig_date = None
             try:
                 data = await storage_mod.download_blob(f"{container}/{name}")
                 result = await ingest_document(
                     db=db, file_bytes=data, filename=filename,
+                    equipment_key=None if folder == "misc" else folder,
+                    published_date=orig_date,
                 )
                 if result.success:
                     ok += 1
