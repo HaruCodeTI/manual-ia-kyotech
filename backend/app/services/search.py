@@ -222,6 +222,15 @@ DOC_TYPE_BOOST = 0.08
 MIN_SCORE_THRESHOLD = 0.15
 QUALITY_WEIGHT = 0.15
 
+# Um chunk cuja word_similarity beira 1.0 contém o termo buscado literalmente —
+# evidência mais forte que qualquer proximidade semântica. Sem este boost a
+# ponderação da fusão enterra o acerto exato: 1.0 * text_weight = 0.35 perde
+# para um acerto vetorial mediano de 0.65 * 0.65 = 0.42. Era o que ainda
+# mantinha o documento ECN fora do top-8 mesmo depois de a busca textual passar
+# a encontrá-lo.
+EXACT_TEXT_MIN = 0.9
+EXACT_TEXT_BOOST = 0.35
+
 
 async def hybrid_search(
     db: AsyncSession,
@@ -261,6 +270,7 @@ async def hybrid_search(
         merged[r.chunk_id] = r
         scores[r.chunk_id] = r.similarity * vector_weight
 
+    exact_hits = 0
     for r in text_results:
         if r.chunk_id in merged:
             scores[r.chunk_id] += r.similarity * text_weight
@@ -268,6 +278,14 @@ async def hybrid_search(
         else:
             merged[r.chunk_id] = r
             scores[r.chunk_id] = r.similarity * text_weight
+
+        # Acerto literal do termo — vale mais que proximidade semântica.
+        if r.similarity >= EXACT_TEXT_MIN:
+            scores[r.chunk_id] += EXACT_TEXT_BOOST
+            exact_hits += 1
+
+    if exact_hits:
+        logger.info(f"Busca híbrida: {exact_hits} acertos textuais exatos (boost aplicado)")
 
     # Boost para documentos do equipamento mencionado
     if equipment_key:
